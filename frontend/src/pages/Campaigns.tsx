@@ -5,8 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 export const Campaigns: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
   const campMap: Record<string, any> = {};
   data.forEach(d => {
-    if (!d.campaign && !d.brand) return;
     const camp = d.campaign || d.brand;
+    if (!camp) return;
     if (!campMap[camp]) campMap[camp] = { campaign: camp, profit: 0, cost: 0, revenue: 0 };
     campMap[camp].profit += (Number(d.revenue) || 0) - (Number(d.cost) || 0);
     campMap[camp].cost += Number(d.cost) || 0;
