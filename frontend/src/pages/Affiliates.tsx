@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, X, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, X, Download, Filter } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
@@ -10,13 +10,61 @@ import {
 import { ReferenceLine } from 'recharts';
 
 const PAGE_SIZE = 20;
-
 const LINE_COLORS = ['#00d4ff', '#f0b429', '#10b981', '#ec4899', '#818cf8', '#f97316'];
 
+type TextColKey    = 'affiliate_name' | 'affiliate_id';
+type NumericColKey = 'clicks' | 'ftds' | 'revenue' | 'cost' | 'profit' | 'roi' | 'cpa';
+type ColumnFilters = Record<TextColKey, string> & Record<NumericColKey, { min: string; max: string }>;
+
+const TEXT_COLS: TextColKey[] = ['affiliate_name', 'affiliate_id'];
+
+const DEFAULT_COL_FILTERS: ColumnFilters = {
+  affiliate_name: '',
+  affiliate_id:   '',
+  clicks:  { min: '', max: '' },
+  ftds:    { min: '', max: '' },
+  revenue: { min: '', max: '' },
+  cost:    { min: '', max: '' },
+  profit:  { min: '', max: '' },
+  roi:     { min: '', max: '' },
+  cpa:     { min: '', max: '' },
+};
+
+const popInputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '5px 8px',
+  background: 'var(--bg-input)',
+  border: '1px solid var(--border)',
+  borderRadius: 5,
+  color: 'var(--text-primary)',
+  fontSize: '0.78rem',
+  outline: 'none',
+  fontFamily: 'var(--font-body)',
+  boxSizing: 'border-box',
+};
+
 export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
-  const [page, setPage]           = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage]               = useState(1);
+  const [searchTerm, setSearchTerm]   = useState('');
+  const [colFilters, setColFilters]   = useState<ColumnFilters>(DEFAULT_COL_FILTERS);
+  const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
+
+  /* ── Close popover on outside click ── */
+  useEffect(() => {
+    if (!openFilterCol) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Element;
+      if (!t.closest('[data-col-filter-pop]') && !t.closest('[data-col-filter-btn]')) {
+        setOpenFilterCol(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openFilterCol]);
+
+  /* ── Reset to page 1 whenever column filters change ── */
+  useEffect(() => { setPage(1); }, [colFilters]);
 
   /* ── Aggregate per-affiliate totals ── */
   const affMap: Record<string, any> = {};
@@ -39,7 +87,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   })).sort((a, b) => b.profit - a.profit);
 
   /* ── Search filter ── */
-  const filteredData = searchTerm.trim() === ''
+  const searchFiltered = searchTerm.trim() === ''
     ? tableData
     : tableData.filter(row => {
         const q = searchTerm.toLowerCase();
@@ -49,15 +97,164 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         );
       });
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    setPage(1); // reset to page 1 on new search
-  };
+  const handleSearch = (term: string) => { setSearchTerm(term); setPage(1); };
+
+  /* ── Column filters ── */
+  const filteredData = (() => {
+    let result = searchFiltered;
+
+    if (colFilters.affiliate_name.trim()) {
+      const q = colFilters.affiliate_name.toLowerCase();
+      result = result.filter(r => String(r.affiliate_name ?? '').toLowerCase().includes(q));
+    }
+    if (colFilters.affiliate_id.trim()) {
+      const q = colFilters.affiliate_id.toLowerCase();
+      result = result.filter(r => String(r.affiliate_id ?? '').toLowerCase().includes(q));
+    }
+
+    const applyRange = (field: string, range: { min: string; max: string }, transform?: (v: number) => number) => {
+      const min = parseFloat(range.min);
+      const max = parseFloat(range.max);
+      if (!isNaN(min)) result = result.filter(r => (transform ? transform(r[field]) : r[field]) >= min);
+      if (!isNaN(max)) result = result.filter(r => (transform ? transform(r[field]) : r[field]) <= max);
+    };
+
+    applyRange('clicks',  colFilters.clicks);
+    applyRange('ftds',    colFilters.ftds);
+    applyRange('revenue', colFilters.revenue);
+    applyRange('cost',    colFilters.cost);
+    applyRange('profit',  colFilters.profit);
+    applyRange('roi',     colFilters.roi, v => v * 100); // stored as ratio, filter as %
+    applyRange('cpa',     colFilters.cpa);
+
+    return result;
+  })();
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
   const pageStart  = (safePage - 1) * PAGE_SIZE;
   const pageData   = filteredData.slice(pageStart, pageStart + PAGE_SIZE);
+
+  /* ── Column filter helpers ── */
+  const isColActive = (col: string): boolean => {
+    if (TEXT_COLS.includes(col as TextColKey)) {
+      return (colFilters[col as TextColKey] as string).trim() !== '';
+    }
+    const r = colFilters[col as NumericColKey] as { min: string; max: string };
+    return r.min !== '' || r.max !== '';
+  };
+
+  const clearCol = (col: string) =>
+    setColFilters(prev => ({
+      ...prev,
+      [col]: TEXT_COLS.includes(col as TextColKey) ? '' : { min: '', max: '' },
+    }));
+
+  const anyColActive = Object.keys(DEFAULT_COL_FILTERS).some(c => isColActive(c));
+
+  const updateText = (col: TextColKey, val: string) =>
+    setColFilters(prev => ({ ...prev, [col]: val }));
+
+  const updateRange = (col: NumericColKey, field: 'min' | 'max', val: string) =>
+    setColFilters(prev => ({
+      ...prev,
+      [col]: { ...(prev[col] as { min: string; max: string }), [field]: val },
+    }));
+
+  /* ── Header cell with filter popover ── */
+  const Th = ({ col, label, align = 'left' }: { col: string; label: string; align?: 'left' | 'right' }) => {
+    const active = isColActive(col);
+    const isOpen = openFilterCol === col;
+    const isText = TEXT_COLS.includes(col as TextColKey);
+
+    return (
+      <th style={{ position: 'relative', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : 'flex-start', gap: 4 }}>
+          {label}
+          <button
+            data-col-filter-btn=""
+            onClick={e => { e.stopPropagation(); setOpenFilterCol(prev => prev === col ? null : col); }}
+            title={`Filter ${label}`}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '1px 3px',
+              borderRadius: 3,
+              display: 'flex',
+              alignItems: 'center',
+              color: active ? 'var(--gold, #f0b429)' : 'var(--text-muted)',
+              flexShrink: 0,
+            }}
+          >
+            <Filter size={10} strokeWidth={active ? 2.5 : 1.8} />
+          </button>
+        </div>
+
+        {isOpen && (
+          <div
+            data-col-filter-pop=""
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: align === 'right' ? 'auto' : 0,
+              right: align === 'right' ? 0 : 'auto',
+              zIndex: 300,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '10px 12px',
+              minWidth: 190,
+              boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                {label}{col === 'roi' ? ' (%)' : ''}
+              </span>
+              {active && (
+                <button
+                  onClick={() => clearCol(col)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.65rem', padding: '1px 4px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 3 }}
+                >
+                  <X size={10} /> Clear
+                </button>
+              )}
+            </div>
+
+            {isText ? (
+              <input
+                type="text"
+                placeholder={`Search ${label.toLowerCase()}…`}
+                value={colFilters[col as TextColKey] as string}
+                onChange={e => updateText(col as TextColKey, e.target.value)}
+                autoFocus
+                style={popInputStyle}
+              />
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={(colFilters[col as NumericColKey] as { min: string; max: string }).min}
+                  onChange={e => updateRange(col as NumericColKey, 'min', e.target.value)}
+                  autoFocus
+                  style={{ ...popInputStyle, width: '50%' }}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={(colFilters[col as NumericColKey] as { min: string; max: string }).max}
+                  onChange={e => updateRange(col as NumericColKey, 'max', e.target.value)}
+                  style={{ ...popInputStyle, width: '50%' }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </th>
+    );
+  };
 
   /* ── Top 6 affiliates monthly profit line chart ── */
   const top6Ids = tableData.slice(0, 6).map(a => a.affiliate_id);
@@ -122,17 +319,10 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         <button
           onClick={handleExport}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 14px',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
+            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+            borderRadius: 8, border: '1px solid var(--border)',
+            backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)',
+            fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
           }}
         >
           <Download size={14} />
@@ -194,8 +384,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         )}
       </div>
 
-      {/* ── Affiliate Search ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      {/* ── Search bar + clear column filters ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
           <Search
             size={15}
@@ -232,7 +422,23 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
             </button>
           )}
         </div>
-        {searchTerm && (
+
+        {anyColActive && (
+          <button
+            onClick={() => setColFilters(DEFAULT_COL_FILTERS)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 12px', borderRadius: 8,
+              border: '1px solid var(--gold, #f0b429)',
+              background: 'none', color: 'var(--gold, #f0b429)',
+              fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+            }}
+          >
+            <X size={12} /> Clear column filters
+          </button>
+        )}
+
+        {(searchTerm || anyColActive) && (
           <span style={{ fontSize: '0.8rem', color: axisColor }}>
             {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
           </span>
@@ -245,15 +451,15 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <thead>
             <tr>
               <th>#</th>
-              <th>Affiliate Name</th>
-              <th>Affiliate ID</th>
-              <th>Clicks</th>
-              <th>FTDs</th>
-              <th>Revenue</th>
-              <th>Cost</th>
-              <th>Profit</th>
-              <th>ROI</th>
-              <th>CPA</th>
+              <Th col="affiliate_name" label="Affiliate Name" />
+              <Th col="affiliate_id"   label="Affiliate ID"   />
+              <Th col="clicks"  label="Clicks"  align="right" />
+              <Th col="ftds"    label="FTDs"    align="right" />
+              <Th col="revenue" label="Revenue" align="right" />
+              <Th col="cost"    label="Cost"    align="right" />
+              <Th col="profit"  label="Profit"  align="right" />
+              <Th col="roi"     label="ROI"     align="right" />
+              <Th col="cpa"     label="CPA"     align="right" />
             </tr>
           </thead>
           <tbody>
@@ -280,7 +486,9 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
             {filteredData.length === 0 && (
               <tr>
                 <td colSpan={10} style={{ textAlign: 'center', color: axisColor, padding: '32px 0' }}>
-                  {searchTerm ? `No affiliates match "${searchTerm}".` : 'No affiliate data found.'}
+                  {searchTerm || anyColActive
+                    ? 'No affiliates match the current filters.'
+                    : 'No affiliate data found.'}
                 </td>
               </tr>
             )}
@@ -291,7 +499,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <div className="pagination">
             <span className="pagination__info">
               Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredData.length)} of {filteredData.length} affiliates
-              {searchTerm && tableData.length !== filteredData.length && ` (filtered from ${tableData.length})`}
+              {(searchTerm || anyColActive) && tableData.length !== filteredData.length && ` (filtered from ${tableData.length})`}
             </span>
             <div className="pagination__controls">
               <button className="pagination__btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>
