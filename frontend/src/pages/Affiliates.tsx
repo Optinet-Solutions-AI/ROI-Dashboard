@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Download, Filter } from 'lucide-react';
+import { Search, X, Download, Filter, ChevronsUpDown } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
@@ -44,13 +44,28 @@ const popInputStyle: React.CSSProperties = {
 };
 
 export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
+  const ALL_COLS: { key: string; label: string }[] = [
+    { key: 'affiliate_name', label: 'Affiliate Name' },
+    { key: 'affiliate_id',   label: 'Affiliate ID'   },
+    { key: 'clicks',         label: 'Clicks'         },
+    { key: 'ftds',           label: 'FTDs'           },
+    { key: 'revenue',        label: 'Revenue'        },
+    { key: 'cost',           label: 'Cost'           },
+    { key: 'profit',         label: 'Profit'         },
+    { key: 'roi',            label: 'ROI'            },
+    { key: 'cpa',            label: 'CPA'            },
+  ];
+
   const [page, setPage]               = useState(1);
   const [searchTerm, setSearchTerm]   = useState('');
   const [colFilters, setColFilters]   = useState<ColumnFilters>(DEFAULT_COL_FILTERS);
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(() => new Set(ALL_COLS.map(c => c.key)));
+  const [colVizOpen, setColVizOpen]   = useState(false);
+  const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
-  /* ── Close popover on outside click ── */
+  /* ── Close filter popover on outside click ── */
   useEffect(() => {
     if (!openFilterCol) return;
     const handler = (e: MouseEvent) => {
@@ -62,6 +77,18 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [openFilterCol]);
+
+  /* ── Close column-visibility popup on outside click ── */
+  useEffect(() => {
+    if (!colVizOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (colVizRef.current && !colVizRef.current.contains(e.target as Node)) {
+        setColVizOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [colVizOpen]);
 
   /* ── Reset to page 1 whenever column filters change ── */
   useEffect(() => { setPage(1); }, [colFilters]);
@@ -316,18 +343,71 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <h1>Affiliates</h1>
           <p>Detailed Affiliate Performance</p>
         </div>
-        <button
-          onClick={handleExport}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-            borderRadius: 8, border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)',
-            fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
-          }}
-        >
-          <Download size={14} />
-          Export CSV
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Column visibility toggle */}
+          <div ref={colVizRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setColVizOpen(v => !v)}
+              title="Show / hide columns"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                borderRadius: 8, border: `1px solid ${colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--border)'}`,
+                backgroundColor: 'var(--bg-card)', color: colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
+                fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
+            >
+              <ChevronsUpDown size={14} />
+              Columns
+            </button>
+
+            {colVizOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 400,
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 10, padding: '10px 14px', minWidth: 200,
+                boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+              }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                  Visible Columns
+                </div>
+                {ALL_COLS.map(({ key, label }) => (
+                  <label
+                    key={key}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 0', fontSize: '0.82rem', color: 'var(--text-primary)', userSelect: 'none' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleCols.has(key)}
+                      onChange={() => {
+                        setVisibleCols(prev => {
+                          const next = new Set(prev);
+                          if (next.has(key)) { if (next.size > 1) next.delete(key); }
+                          else next.add(key);
+                          return next;
+                        });
+                      }}
+                      style={{ accentColor: 'var(--accent, #00d4ff)', width: 14, height: 14, cursor: 'pointer' }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleExport}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+              borderRadius: 8, border: '1px solid var(--border)',
+              backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)',
+              fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+            }}
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* ── Net Profit by Affiliate (line chart) ── */}
@@ -451,15 +531,15 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <thead>
             <tr>
               <th>#</th>
-              <Th col="affiliate_name" label="Affiliate Name" />
-              <Th col="affiliate_id"   label="Affiliate ID"   />
-              <Th col="clicks"  label="Clicks"  align="right" />
-              <Th col="ftds"    label="FTDs"    align="right" />
-              <Th col="revenue" label="Revenue" align="right" />
-              <Th col="cost"    label="Cost"    align="right" />
-              <Th col="profit"  label="Profit"  align="right" />
-              <Th col="roi"     label="ROI"     align="right" />
-              <Th col="cpa"     label="CPA"     align="right" />
+              {visibleCols.has('affiliate_name') && <Th col="affiliate_name" label="Affiliate Name" />}
+              {visibleCols.has('affiliate_id')   && <Th col="affiliate_id"   label="Affiliate ID"   />}
+              {visibleCols.has('clicks')  && <Th col="clicks"  label="Clicks"  align="right" />}
+              {visibleCols.has('ftds')    && <Th col="ftds"    label="FTDs"    align="right" />}
+              {visibleCols.has('revenue') && <Th col="revenue" label="Revenue" align="right" />}
+              {visibleCols.has('cost')    && <Th col="cost"    label="Cost"    align="right" />}
+              {visibleCols.has('profit')  && <Th col="profit"  label="Profit"  align="right" />}
+              {visibleCols.has('roi')     && <Th col="roi"     label="ROI"     align="right" />}
+              {visibleCols.has('cpa')     && <Th col="cpa"     label="CPA"     align="right" />}
             </tr>
           </thead>
           <tbody>
@@ -468,24 +548,20 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                 <td style={{ color: axisColor, fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                   {String(pageStart + idx + 1).padStart(2, '0')}
                 </td>
-                <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>
-                <td style={{ fontWeight: 500 }}>{row.affiliate_id}</td>
-                <td>{row.clicks.toLocaleString()}</td>
-                <td>{row.ftds.toLocaleString()}</td>
-                <td>{formatter.format(row.revenue)}</td>
-                <td>{formatter.format(row.cost)}</td>
-                <td style={{ color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-                  {formatter.format(row.profit)}
-                </td>
-                <td style={{ color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-                  {pctFormatter.format(row.roi)}
-                </td>
-                <td style={{ color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>
+                {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
+                {visibleCols.has('affiliate_id')   && <td style={{ fontWeight: 500 }}>{row.affiliate_id}</td>}
+                {visibleCols.has('clicks')  && <td>{row.clicks.toLocaleString()}</td>}
+                {visibleCols.has('ftds')    && <td>{row.ftds.toLocaleString()}</td>}
+                {visibleCols.has('revenue') && <td>{formatter.format(row.revenue)}</td>}
+                {visibleCols.has('cost')    && <td>{formatter.format(row.cost)}</td>}
+                {visibleCols.has('profit')  && <td style={{ color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{formatter.format(row.profit)}</td>}
+                {visibleCols.has('roi')     && <td style={{ color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{pctFormatter.format(row.roi)}</td>}
+                {visibleCols.has('cpa')     && <td style={{ color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>}
               </tr>
             ))}
             {filteredData.length === 0 && (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', color: axisColor, padding: '32px 0' }}>
+                <td colSpan={1 + visibleCols.size} style={{ textAlign: 'center', color: axisColor, padding: '32px 0' }}>
                   {searchTerm || anyColActive
                     ? 'No affiliates match the current filters.'
                     : 'No affiliate data found.'}
