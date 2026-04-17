@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
@@ -314,7 +315,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           </button>
         </div>
 
-        {isOpen && popoverPos && (
+        {isOpen && popoverPos && createPortal(
           <div
             data-col-filter-pop=""
             style={{
@@ -433,7 +434,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                 />
               </div>
             )}
-          </div>
+          </div>,
+          document.body,
         )}
       </th>
     );
