@@ -5,7 +5,7 @@ import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
+  CartesianGrid,
 } from 'recharts';
 import { ReferenceLine } from 'recharts';
 
@@ -62,6 +62,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() => new Set(ALL_COLS.map(c => c.key)));
   const [colVizOpen, setColVizOpen]   = useState(false);
+  const [focusedAffiliate, setFocusedAffiliate] = useState<string | null>(null);
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
@@ -441,46 +442,99 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         <div className="chart-title">Net Profit by Affiliate — Top 6</div>
 
         {lineData.length > 1 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={lineData} margin={{ top: 8, right: 24, bottom: 8, left: 8 }}>
-              <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" opacity={0.5} />
-              <XAxis
-                dataKey="month"
-                stroke={axisStroke}
-                tick={{ fontSize: 11, fill: axisColor }}
-                tickLine={false}
-              />
-              <YAxis
-                stroke={axisStroke}
-                tick={{ fontSize: 11, fill: axisColor }}
-                tickFormatter={(v) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `$${(v / 1_000).toFixed(0)}k` : `$${v}`}
-                width={60}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                formatter={(value: any, name: any) => [formatter.format(Number(value ?? 0)), String(name)]}
-              />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: '0.75rem', paddingTop: 12 }}
-              />
-              <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="6 3" strokeWidth={1} />
-              {top6Ids.map((id, idx) => (
-                <Line
-                  key={id}
-                  type="monotone"
-                  dataKey={id}
-                  stroke={LINE_COLORS[idx % LINE_COLORS.length]}
-                  strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 0, fill: LINE_COLORS[idx % LINE_COLORS.length] }}
-                  activeDot={{ r: 6, strokeWidth: 2, stroke: '#ffffff' }}
-                  connectNulls
+          <>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={lineData} margin={{ top: 8, right: 24, bottom: 8, left: 8 }}>
+                <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" opacity={0.5} />
+                <XAxis
+                  dataKey="month"
+                  stroke={axisStroke}
+                  tick={{ fontSize: 11, fill: axisColor }}
+                  tickLine={false}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis
+                  stroke={axisStroke}
+                  tick={{ fontSize: 11, fill: axisColor }}
+                  tickFormatter={(v) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `$${(v / 1_000).toFixed(0)}k` : `$${v}`}
+                  width={60}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(value: any, name: any) => [formatter.format(Number(value ?? 0)), String(name)]}
+                />
+                <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="6 3" strokeWidth={1} />
+                {top6Ids.map((id, idx) => {
+                  const color = LINE_COLORS[idx % LINE_COLORS.length];
+                  const isFocused = focusedAffiliate === null || focusedAffiliate === id;
+                  return (
+                    <Line
+                      key={id}
+                      type="monotone"
+                      dataKey={id}
+                      stroke={color}
+                      strokeWidth={focusedAffiliate === id ? 3 : 2}
+                      strokeOpacity={isFocused ? 1 : 0.12}
+                      dot={{ r: 4, strokeWidth: 0, fill: color, fillOpacity: isFocused ? 1 : 0.12 }}
+                      activeDot={isFocused ? { r: 6, strokeWidth: 2, stroke: '#ffffff' } : false}
+                      connectNulls
+                    />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+
+            {/* Clickable custom legend */}
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 4, paddingTop: 10 }}>
+              {top6Ids.map((id, idx) => {
+                const color = LINE_COLORS[idx % LINE_COLORS.length];
+                const isFocused = focusedAffiliate === null || focusedAffiliate === id;
+                const name = tableData.find(r => r.affiliate_id === id)?.affiliate_name || id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setFocusedAffiliate(prev => prev === id ? null : id)}
+                    title={focusedAffiliate === id ? 'Click to show all' : `Focus on ${name}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: focusedAffiliate === id ? `${color}18` : 'none',
+                      border: focusedAffiliate === id ? `1px solid ${color}55` : '1px solid transparent',
+                      borderRadius: 20,
+                      cursor: 'pointer',
+                      padding: '4px 10px',
+                      opacity: isFocused ? 1 : 0.35,
+                      transition: 'opacity 0.2s, background 0.2s, border-color 0.2s',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-primary)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    <span style={{
+                      width: 9, height: 9, borderRadius: '50%',
+                      background: color, flexShrink: 0,
+                      boxShadow: focusedAffiliate === id ? `0 0 7px ${color}` : 'none',
+                      transition: 'box-shadow 0.2s',
+                    }} />
+                    {name}
+                  </button>
+                );
+              })}
+              {focusedAffiliate !== null && (
+                <button
+                  onClick={() => setFocusedAffiliate(null)}
+                  style={{
+                    background: 'none', border: '1px solid var(--border)',
+                    borderRadius: 20, cursor: 'pointer',
+                    padding: '4px 10px', fontSize: '0.72rem',
+                    color: 'var(--text-muted)', fontFamily: 'var(--font-body)',
+                    transition: 'color 0.2s',
+                  }}
+                >
+                  Show all
+                </button>
+              )}
+            </div>
+          </>
         ) : (
           <div style={{ padding: '24px 0', color: axisColor, fontSize: '0.875rem', textAlign: 'center' }}>
             {lineData.length === 0
