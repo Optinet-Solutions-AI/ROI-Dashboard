@@ -975,6 +975,7 @@ body::before {
   border-radius: var(--r-lg);
   background: var(--bg-card);
   -webkit-overflow-scrolling: touch;
+  min-height: 460px; /* keeps room below the header for filter popovers when results are small */
 }
 
 .data-table-container::-webkit-scrollbar { height: 5px; }

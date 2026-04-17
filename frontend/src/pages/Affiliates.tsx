@@ -71,48 +71,17 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
-  /* ── Close filter popover on outside click; reposition on scroll/resize ── */
+  /* ── Close filter popover on outside click (parked — does not follow scroll) ── */
   useEffect(() => {
     if (!openFilterCol) return;
-
     const clickHandler = (e: MouseEvent) => {
       const t = e.target as Element;
       if (!t.closest('[data-col-filter-pop]') && !t.closest('[data-col-filter-btn]')) {
         setOpenFilterCol(null);
       }
     };
-
-    const reposition = (e?: Event) => {
-      // Ignore scrolls originating inside the popover's own scrollable list
-      const target = e?.target;
-      if (target instanceof Element && target.closest('[data-col-filter-pop]')) return;
-
-      // Query fresh from DOM — Th is redefined each render, so refs go stale
-      const btn = document.querySelector(
-        `[data-col-filter-btn="${openFilterCol}"]`,
-      ) as HTMLElement | null;
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-      // Close when the header scrolls out of view
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
-        setOpenFilterCol(null);
-        return;
-      }
-      setPopoverPos({
-        top:   rect.bottom + 4,
-        left:  rect.left,
-        right: window.innerWidth - rect.right,
-      });
-    };
-
     document.addEventListener('mousedown', clickHandler);
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
-    return () => {
-      document.removeEventListener('mousedown', clickHandler);
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
-    };
+    return () => document.removeEventListener('mousedown', clickHandler);
   }, [openFilterCol]);
 
   /* ── Close column-visibility popup on outside click ── */
@@ -374,24 +343,19 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
 
             <div style={{ height: 1, background: 'var(--border)', margin: '6px 0 8px' }} />
 
-            {isText ? (
-              <>
+            {isText && (
+              <div>
                 <input
                   type="text"
                   placeholder="Search…"
                   value={search}
                   onChange={e => setColSearch(prev => ({ ...prev, [col]: e.target.value }))}
-                  autoFocus
                   style={{ ...popInputStyle, marginBottom: 6 }}
                 />
                 <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {(() => {
-                    const q       = search.trim().toLowerCase();
-                    const matches = getUniqueValues(col as TextColKey).filter(v => !q || v.toLowerCase().includes(q));
-                    if (matches.length === 0) {
-                      return <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No matches</span>;
-                    }
-                    return matches.map(val => {
+                  {getUniqueValues(col as TextColKey)
+                    .filter(v => !search.trim() || v.toLowerCase().includes(search.trim().toLowerCase()))
+                    .map(val => {
                       const checked = (colFilters[col as TextColKey] as string[]).includes(val);
                       return (
                         <label
@@ -412,11 +376,11 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                           {val}
                         </label>
                       );
-                    });
-                  })()}
+                    })}
                 </div>
-              </>
-            ) : (
+              </div>
+            )}
+            {!isText && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   type="number"
