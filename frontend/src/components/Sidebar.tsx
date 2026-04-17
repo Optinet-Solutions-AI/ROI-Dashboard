@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   UploadCloud, LayoutDashboard, Users, Megaphone,
-  Lightbulb, Table, BarChart3, X, Sun, Moon, Trash2,
+  Lightbulb, Table, BarChart3, X, Sun, Moon, Trash2, Clock,
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 
@@ -13,6 +13,7 @@ interface SidebarProps {
   isOpen:        boolean;
   onClose:       () => void;
   recordCount?:  number;
+  deletedCount?: number;
 }
 
 const TABS = [
@@ -25,7 +26,7 @@ const TABS = [
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onFileUpload, onClearData, activeTab, setActiveTab, isOpen, onClose,
-  recordCount = 0,
+  recordCount = 0, deletedCount = 0,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
@@ -102,6 +103,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {label}
           </button>
         ))}
+
+        {deletedCount > 0 && (
+          <button
+            className={`nav-item${activeTab === 'Deleted' ? ' active' : ''}`}
+            onClick={() => setActiveTab('Deleted')}
+            style={{ color: activeTab === 'Deleted' ? undefined : '#ef4444', opacity: 0.85 }}
+          >
+            <Clock size={15} />
+            Deleted
+            <span style={{
+              marginLeft: 'auto',
+              fontSize: '0.65rem',
+              background: 'rgba(239,68,68,0.15)',
+              color: '#ef4444',
+              borderRadius: 10,
+              padding: '1px 6px',
+              fontWeight: 600,
+            }}>
+              {deletedCount.toLocaleString()}
+            </span>
+          </button>
+        )}
 
         {/* Theme toggle */}
         <div className="sidebar__nav-label" style={{ marginTop: 16 }}>Appearance</div>

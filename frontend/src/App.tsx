@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
@@ -8,6 +8,7 @@ import { Affiliates } from './pages/Affiliates';
 import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
+import { Deleted } from './pages/Deleted';
 import { fetchRecords, clearRecords, insertRecords } from './lib/db';
 
 // ── IndexedDB persistence (no size limit — localStorage tops out at ~5 MB) ──
@@ -79,10 +80,13 @@ const TABS = [
   { id: 'Campaigns',  label: 'Campaigns',   Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',    Icon: Lightbulb       },
   { id: 'Data',       label: 'Data',        Icon: Table           },
+  { id: 'Deleted',    label: 'Deleted',     Icon: Trash2          },
 ];
 
 function App() {
   const [data, setData]               = useState<PerformanceRecord[]>([]);
+  const [deletedData, setDeletedData] = useState<PerformanceRecord[]>([]);
+  const [deletedAt, setDeletedAt]     = useState<Date | null>(null);
   const [activeTab, setActiveTab]     = useState('Overview');
   const [loading, setLoading]         = useState(true); // true until IDB load completes
   const [isDraggingOver, setDragging] = useState(false);
@@ -146,7 +150,10 @@ function App() {
   };
 
   const handleClearData = () => {
+    setDeletedData(data);
+    setDeletedAt(new Date());
     setData([]);
+    setActiveTab('Deleted');
     clearIDB().catch(e => console.warn('IDB clear failed:', e));
     clearRecords().catch(e => console.warn('Supabase clear failed (local cleared):', e));
   };
@@ -197,6 +204,7 @@ function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         recordCount={data.length}
+        deletedCount={deletedData.length}
       />
 
       {/* ── Main Content ── */}
@@ -221,7 +229,7 @@ function App() {
           </div>
         )}
 
-        {!loading && data.length === 0 && (
+        {!loading && data.length === 0 && activeTab !== 'Deleted' && (
           <div className="empty-state">
             <div className="empty-state__icon">
               <BarChart3 size={34} />
@@ -234,7 +242,13 @@ function App() {
           </div>
         )}
 
-        {!loading && data.length > 0 && (
+        {!loading && activeTab === 'Deleted' && (
+          <div className="fade-in">
+            <Deleted data={deletedData} clearedAt={deletedAt} />
+          </div>
+        )}
+
+        {!loading && data.length > 0 && activeTab !== 'Deleted' && (
           <div className="fade-in">
             {activeTab === 'Overview'   && <Overview   data={data} />}
             {activeTab === 'Affiliates' && <Affiliates data={data} />}
@@ -247,7 +261,7 @@ function App() {
 
       {/* ── Mobile Bottom Navigation ── */}
       <nav className="mobile-bottom-nav">
-        {TABS.map(({ id, label, Icon }) => (
+        {TABS.filter(({ id }) => id !== 'Deleted' || deletedData.length > 0).map(({ id, label, Icon }) => (
           <button
             key={id}
             className={`mobile-bottom-nav__item${activeTab === id ? ' active' : ''}`}
