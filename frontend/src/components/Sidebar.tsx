@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import {
   UploadCloud, LayoutDashboard, Users, Megaphone,
   Lightbulb, Table, BarChart3, X, Sun, Moon,
-  Search, ChevronDown, ChevronUp,
+  Search, ChevronDown, ChevronUp, Trash2,
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import type { GlobalFilters, FilterOptions } from '../types/filters';
 
 interface SidebarProps {
   onFileUpload:     (file: File) => void;
+  onClearData?:     () => void;
   activeTab:        string;
   setActiveTab:     (tab: string) => void;
   isOpen:           boolean;
@@ -71,7 +72,7 @@ const formatDateYMD = (d: Date): string => {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  onFileUpload, activeTab, setActiveTab, isOpen, onClose,
+  onFileUpload, onClearData, activeTab, setActiveTab, isOpen, onClose,
   recordCount = 0, filteredCount, filters, filterOptions, onFiltersChange,
 }) => {
   const { theme, toggleTheme } = useTheme();
@@ -473,6 +474,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </button>
       </nav>
+
+      {/* Clear Data */}
+      {onClearData && recordCount > 0 && (
+        <div style={{ padding: '10px 16px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm('Clear all data from Supabase?')) return;
+              onClearData();
+            }}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px solid #ef4444',
+              borderRadius: 'var(--r-xs)',
+              color: '#ef4444',
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+              padding: '5px 8px',
+              fontFamily: 'var(--font-body)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <Trash2 size={12} />
+            Clear Data
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="sidebar__footer">
