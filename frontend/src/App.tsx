@@ -8,7 +8,7 @@ import { Affiliates } from './pages/Affiliates';
 import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
-import { fetchRecords, replaceRecords } from './lib/db';
+import { fetchRecords, clearRecords, insertRecords } from './lib/db';
 import type { GlobalFilters, FilterOptions } from './types/filters';
 
 const LS_KEY = 'roi-dashboard-data';
@@ -72,15 +72,28 @@ function App() {
       setData(parsedData);
       saveToLocalStorage(parsedData);
       // Supabase sync is best-effort — never block or alert on its failure
-      replaceRecords(parsedData).catch((err: unknown) =>
-        console.warn('Supabase sync failed, data saved locally:', err)
-      );
+      clearRecords()
+        .then(() => insertRecords(parsedData))
+        .catch((err: unknown) =>
+          console.warn('Supabase sync failed, data saved locally:', err)
+        );
     } catch (error) {
       console.error('Error parsing file:', error);
       alert('Failed to read file. Make sure it is a valid Excel or CSV file.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClearData = async () => {
+    try {
+      await clearRecords();
+    } catch (err) {
+      alert(`Failed to clear Supabase data: ${err}`);
+      return;
+    }
+    setData([]);
+    saveToLocalStorage([]);
   };
 
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
@@ -171,6 +184,7 @@ function App() {
 
       <Sidebar
         onFileUpload={handleFileUpload}
+        onClearData={handleClearData}
         activeTab={activeTab}
         setActiveTab={switchTab}
         isOpen={sidebarOpen}

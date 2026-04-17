@@ -481,7 +481,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (!window.confirm('Clear all data from Supabase?')) return;
+              if (!window.confirm('Remove all loaded records? This cannot be undone.')) return;
               onClearData();
             }}
             style={{
