@@ -67,7 +67,6 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [colSearch, setColSearch]     = useState<Record<string, string>>({});
   const [popoverPos, setPopoverPos]   = useState<{ top: number; left: number; right: number } | null>(null);
-  const activeBtnRef                  = React.useRef<HTMLButtonElement | null>(null);
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
@@ -87,7 +86,10 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
       const target = e?.target;
       if (target instanceof Element && target.closest('[data-col-filter-pop]')) return;
 
-      const btn = activeBtnRef.current;
+      // Query fresh from DOM — Th is redefined each render, so refs go stale
+      const btn = document.querySelector(
+        `[data-col-filter-btn="${openFilterCol}"]`,
+      ) as HTMLElement | null;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
       // Close when the header scrolls out of view
@@ -280,16 +282,13 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
               : <ChevronUp   size={11} style={{ color: 'var(--accent, #00d4ff)', flexShrink: 0 }} />
           )}
           <button
-            data-col-filter-btn=""
+            data-col-filter-btn={col}
             onClick={e => {
               e.stopPropagation();
               if (openFilterCol === col) {
                 setOpenFilterCol(null);
-                activeBtnRef.current = null;
               } else {
-                const btn  = e.currentTarget;
-                const rect = btn.getBoundingClientRect();
-                activeBtnRef.current = btn;
+                const rect = e.currentTarget.getBoundingClientRect();
                 setPopoverPos({
                   top:   rect.bottom + 4,
                   left:  rect.left,
