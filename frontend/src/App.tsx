@@ -53,8 +53,10 @@ function App() {
     selectedPeriods: [],
   });
 
-  // Sync with Supabase in the background (updates localStorage if DB has newer data)
+  // Use Supabase only as a fallback when localStorage has no data (e.g. first visit or cleared storage)
+  // Never let Supabase overwrite data that was just uploaded and saved to localStorage
   useEffect(() => {
+    if (loadFromLocalStorage().length > 0) return;
     fetchRecords()
       .then(records => {
         if (records.length > 0) {
