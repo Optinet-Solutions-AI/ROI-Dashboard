@@ -3,8 +3,13 @@ import type { PerformanceRecord } from '../utils/kpiEngine'
 
 const TABLE = 'performance_records'
 
-// Only these columns exist in the DB schema
-const COLUMNS = ['affiliate_id', 'country', 'campaign', 'date', 'clicks', 'registrations', 'ftds', 'revenue', 'cost'] as const
+// All columns defined in supabase-setup.sql (keep in sync with that schema)
+const COLUMNS = [
+  'affiliate_id', 'affiliate_name', 'country', 'campaign',
+  'brand', 'am', 'source', 'period', 'date',
+  'clicks', 'registrations', 'ftds', 'revenue', 'cost',
+  'casino_real_ngr', 'sb_real_ngr', 'flats_and_adjustments',
+] as const
 
 function toRow(record: PerformanceRecord) {
   const row: Record<string, unknown> = {}
@@ -44,6 +49,25 @@ export async function replaceRecords(records: PerformanceRecord[]): Promise<void
 
 /** Append new records to the existing dataset without deleting anything */
 export async function appendRecords(records: PerformanceRecord[]): Promise<void> {
+  const BATCH_SIZE = 500
+  for (let i = 0; i < records.length; i += BATCH_SIZE) {
+    const batch = records.slice(i, i + BATCH_SIZE).map(toRow)
+    const { error } = await supabase.from(TABLE).insert(batch)
+    if (error) throw error
+  }
+}
+
+/** Delete all rows from performance_records */
+export async function clearRecords(): Promise<void> {
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .gte('id', 0)
+  if (error) throw error
+}
+
+/** Bulk insert records without deleting first — call clearRecords() beforehand if a fresh upload is needed */
+export async function insertRecords(records: PerformanceRecord[]): Promise<void> {
   const BATCH_SIZE = 500
   for (let i = 0; i < records.length; i += BATCH_SIZE) {
     const batch = records.slice(i, i + BATCH_SIZE).map(toRow)
