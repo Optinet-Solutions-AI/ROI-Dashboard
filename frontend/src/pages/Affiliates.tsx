@@ -67,20 +67,49 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [colSearch, setColSearch]     = useState<Record<string, string>>({});
   const [popoverPos, setPopoverPos]   = useState<{ top: number; left: number; right: number } | null>(null);
+  const activeBtnRef                  = React.useRef<HTMLButtonElement | null>(null);
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
-  /* ── Close filter popover on outside click ── */
+  /* ── Close filter popover on outside click; reposition on scroll/resize ── */
   useEffect(() => {
     if (!openFilterCol) return;
+
     const clickHandler = (e: MouseEvent) => {
       const t = e.target as Element;
       if (!t.closest('[data-col-filter-pop]') && !t.closest('[data-col-filter-btn]')) {
         setOpenFilterCol(null);
       }
     };
+
+    const reposition = (e?: Event) => {
+      // Ignore scrolls originating inside the popover's own scrollable list
+      const target = e?.target;
+      if (target instanceof Element && target.closest('[data-col-filter-pop]')) return;
+
+      const btn = activeBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      // Close when the header scrolls out of view
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        setOpenFilterCol(null);
+        return;
+      }
+      setPopoverPos({
+        top:   rect.bottom + 4,
+        left:  rect.left,
+        right: window.innerWidth - rect.right,
+      });
+    };
+
     document.addEventListener('mousedown', clickHandler);
-    return () => document.removeEventListener('mousedown', clickHandler);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', clickHandler);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
   }, [openFilterCol]);
 
   /* ── Close column-visibility popup on outside click ── */
@@ -256,8 +285,11 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
               e.stopPropagation();
               if (openFilterCol === col) {
                 setOpenFilterCol(null);
+                activeBtnRef.current = null;
               } else {
-                const rect = e.currentTarget.getBoundingClientRect();
+                const btn  = e.currentTarget;
+                const rect = btn.getBoundingClientRect();
+                activeBtnRef.current = btn;
                 setPopoverPos({
                   top:   rect.bottom + 4,
                   left:  rect.left,
