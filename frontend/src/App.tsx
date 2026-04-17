@@ -11,21 +11,51 @@ import { Data } from './pages/Data';
 import { fetchRecords, clearRecords, insertRecords } from './lib/db';
 import type { GlobalFilters, FilterOptions } from './types/filters';
 
-const LS_KEY = 'roi-dashboard-data';
+// ── IndexedDB persistence (no size limit — localStorage tops out at ~5 MB) ──
+const IDB_NAME    = 'roi-dashboard-db';
+const IDB_STORE   = 'records';
+const IDB_VERSION = 1;
 
-function saveToLocalStorage(records: PerformanceRecord[]) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(records)); }
-  catch (e) { console.warn('localStorage save failed:', e); }
+function openIDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(IDB_STORE))
+        req.result.createObjectStore(IDB_STORE, { autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
 }
 
-function loadFromLocalStorage(): PerformanceRecord[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.warn('localStorage load failed:', e);
-    return [];
-  }
+async function saveToIDB(records: PerformanceRecord[]): Promise<void> {
+  const db = await openIDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    for (const r of records) tx.objectStore(IDB_STORE).add(r);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
+}
+
+async function loadFromIDB(): Promise<PerformanceRecord[]> {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).getAll();
+    req.onsuccess = () => resolve(req.result as PerformanceRecord[]);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function clearIDB(): Promise<void> {
+  const db = await openIDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  });
 }
 
 const TABS = [
@@ -37,10 +67,9 @@ const TABS = [
 ];
 
 function App() {
-  // Initialize directly from localStorage — data is available instantly on refresh
-  const [data, setData]               = useState<PerformanceRecord[]>(() => loadFromLocalStorage());
+  const [data, setData]               = useState<PerformanceRecord[]>([]);
   const [activeTab, setActiveTab]     = useState('Overview');
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading]         = useState(true); // true until IDB load completes
   const [isDraggingOver, setDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters]         = useState<GlobalFilters>({
@@ -53,18 +82,24 @@ function App() {
     selectedPeriods: [],
   });
 
-  // Use Supabase only as a fallback when localStorage has no data (e.g. first visit or cleared storage)
-  // Never let Supabase overwrite data that was just uploaded and saved to localStorage
+  // On mount: load from IndexedDB first; fall back to Supabase only when IDB is empty
   useEffect(() => {
-    if (loadFromLocalStorage().length > 0) return;
-    fetchRecords()
-      .then(records => {
-        if (records.length > 0) {
-          setData(records);
-          saveToLocalStorage(records);
+    (async () => {
+      try {
+        const local = await loadFromIDB();
+        if (local.length > 0) { setData(local); return; }
+        // IDB empty — try Supabase as a one-time fallback (first visit / cleared storage)
+        const remote = await fetchRecords().catch(() => [] as PerformanceRecord[]);
+        if (remote.length > 0) {
+          setData(remote);
+          saveToIDB(remote).catch(e => console.warn('IDB save failed:', e));
         }
-      })
-      .catch(err => console.error('Supabase sync failed (using local data):', err));
+      } catch (e) {
+        console.error('Failed to load persisted data:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const handleFileUpload = async (file: File) => {
@@ -72,7 +107,7 @@ function App() {
       setLoading(true);
       const parsedData = await parseExcelFile(file);
       setData(parsedData);
-      saveToLocalStorage(parsedData);
+      await saveToIDB(parsedData);
       // Supabase sync is best-effort — never block or alert on its failure
       clearRecords()
         .then(() => insertRecords(parsedData))
@@ -95,7 +130,7 @@ function App() {
       return;
     }
     setData([]);
-    saveToLocalStorage([]);
+    clearIDB().catch(e => console.warn('IDB clear failed:', e));
   };
 
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
