@@ -1,11 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl     = import.meta.env.VITE_SUPABASE_URL     as string
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const supabaseUrl     = import.meta.env.VITE_SUPABASE_URL     as string | undefined
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-// createClient is safe to call even with empty strings — it only fails on actual requests.
-// This prevents a missing env var from crashing the entire app at startup.
-export const supabase = createClient(
-  supabaseUrl     || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder',
-)
+console.log('[supabase] VITE_SUPABASE_URL =', supabaseUrl ?? '(undefined — env var not injected at build time)')
+console.log('[supabase] VITE_SUPABASE_ANON_KEY present =', !!supabaseAnonKey)
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Supabase env vars missing at build time. ' +
+    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel → Settings → Environment Variables, ' +
+    'then redeploy without build cache.'
+  )
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
