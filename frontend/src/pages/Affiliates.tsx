@@ -14,13 +14,13 @@ const LINE_COLORS = ['#00d4ff', '#f0b429', '#10b981', '#ec4899', '#818cf8', '#f9
 
 type TextColKey    = 'affiliate_name' | 'affiliate_id';
 type NumericColKey = 'clicks' | 'ftds' | 'revenue' | 'cost' | 'profit' | 'roi' | 'cpa';
-type ColumnFilters = Record<TextColKey, string> & Record<NumericColKey, { min: string; max: string }>;
+type ColumnFilters = Record<TextColKey, string[]> & Record<NumericColKey, { min: string; max: string }>;
 
 const TEXT_COLS: TextColKey[] = ['affiliate_name', 'affiliate_id'];
 
 const DEFAULT_COL_FILTERS: ColumnFilters = {
-  affiliate_name: '',
-  affiliate_id:   '',
+  affiliate_name: [],
+  affiliate_id:   [],
   clicks:  { min: '', max: '' },
   ftds:    { min: '', max: '' },
   revenue: { min: '', max: '' },
@@ -130,13 +130,11 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const filteredData = (() => {
     let result = searchFiltered;
 
-    if (colFilters.affiliate_name.trim()) {
-      const q = colFilters.affiliate_name.toLowerCase();
-      result = result.filter(r => String(r.affiliate_name ?? '').toLowerCase().includes(q));
+    if (colFilters.affiliate_name.length > 0) {
+      result = result.filter(r => colFilters.affiliate_name.includes(String(r.affiliate_name ?? '')));
     }
-    if (colFilters.affiliate_id.trim()) {
-      const q = colFilters.affiliate_id.toLowerCase();
-      result = result.filter(r => String(r.affiliate_id ?? '').toLowerCase().includes(q));
+    if (colFilters.affiliate_id.length > 0) {
+      result = result.filter(r => colFilters.affiliate_id.includes(String(r.affiliate_id ?? '')));
     }
 
     const applyRange = (field: string, range: { min: string; max: string }, transform?: (v: number) => number) => {
@@ -165,7 +163,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   /* ── Column filter helpers ── */
   const isColActive = (col: string): boolean => {
     if (TEXT_COLS.includes(col as TextColKey)) {
-      return (colFilters[col as TextColKey] as string).trim() !== '';
+      return (colFilters[col as TextColKey] as string[]).length > 0;
     }
     const r = colFilters[col as NumericColKey] as { min: string; max: string };
     return r.min !== '' || r.max !== '';
@@ -174,19 +172,28 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const clearCol = (col: string) =>
     setColFilters(prev => ({
       ...prev,
-      [col]: TEXT_COLS.includes(col as TextColKey) ? '' : { min: '', max: '' },
+      [col]: TEXT_COLS.includes(col as TextColKey) ? [] : { min: '', max: '' },
     }));
 
   const anyColActive = Object.keys(DEFAULT_COL_FILTERS).some(c => isColActive(c));
 
-  const updateText = (col: TextColKey, val: string) =>
-    setColFilters(prev => ({ ...prev, [col]: val }));
+  const toggleListItem = (col: TextColKey, val: string) =>
+    setColFilters(prev => {
+      const arr = prev[col] as string[];
+      return {
+        ...prev,
+        [col]: arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val],
+      };
+    });
 
   const updateRange = (col: NumericColKey, field: 'min' | 'max', val: string) =>
     setColFilters(prev => ({
       ...prev,
       [col]: { ...(prev[col] as { min: string; max: string }), [field]: val },
     }));
+
+  const getUniqueValues = (col: TextColKey): string[] =>
+    Array.from(new Set(tableData.map(r => String(r[col] ?? '')).filter(Boolean))).sort();
 
   /* ── Header cell with filter popover ── */
   const Th = ({ col, label, align = 'left' }: { col: string; label: string; align?: 'left' | 'right' }) => {
@@ -250,14 +257,33 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
             </div>
 
             {isText ? (
-              <input
-                type="text"
-                placeholder={`Search ${label.toLowerCase()}…`}
-                value={colFilters[col as TextColKey] as string}
-                onChange={e => updateText(col as TextColKey, e.target.value)}
-                autoFocus
-                style={popInputStyle}
-              />
+              <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {getUniqueValues(col as TextColKey).map(val => {
+                  const checked = (colFilters[col as TextColKey] as string[]).includes(val);
+                  return (
+                    <label
+                      key={val}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '4px 2px', cursor: 'pointer', fontSize: '0.8rem',
+                        color: checked ? 'var(--text-primary)' : 'var(--text-muted)',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleListItem(col as TextColKey, val)}
+                        style={{ accentColor: 'var(--accent, #00d4ff)', width: 13, height: 13, cursor: 'pointer', flexShrink: 0 }}
+                      />
+                      {val}
+                    </label>
+                  );
+                })}
+                {getUniqueValues(col as TextColKey).length === 0 && (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No values</span>
+                )}
+              </div>
             ) : (
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
