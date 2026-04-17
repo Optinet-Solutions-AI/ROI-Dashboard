@@ -30,13 +30,29 @@ function openIDB(): Promise<IDBDatabase> {
 
 async function saveToIDB(records: PerformanceRecord[]): Promise<void> {
   const db = await openIDB();
+
+  // Step 1: wipe existing data in its own transaction
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(IDB_STORE, 'readwrite');
     tx.objectStore(IDB_STORE).clear();
-    for (const r of records) tx.objectStore(IDB_STORE).add(r);
     tx.oncomplete = () => resolve();
-    tx.onerror    = () => reject(tx.error);
+    tx.onerror    = () => reject(tx.error ?? new Error('IDB clear failed'));
+    tx.onabort    = () => reject(new Error('IDB clear aborted'));
   });
+
+  // Step 2: insert in batches of 2 000 so no single transaction is too large
+  const BATCH = 2000;
+  for (let i = 0; i < records.length; i += BATCH) {
+    const slice = records.slice(i, i + BATCH);
+    await new Promise<void>((resolve, reject) => {
+      const tx    = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      for (const r of slice) store.add(r);
+      tx.oncomplete = () => resolve();
+      tx.onerror    = () => reject(tx.error ?? new Error('IDB write failed'));
+      tx.onabort    = () => reject(new Error('IDB write aborted'));
+    });
+  }
 }
 
 async function loadFromIDB(): Promise<PerformanceRecord[]> {
@@ -122,15 +138,10 @@ function App() {
     }
   };
 
-  const handleClearData = async () => {
-    try {
-      await clearRecords();
-    } catch (err) {
-      alert(`Failed to remove records. Please try again.\n${err}`);
-      return;
-    }
+  const handleClearData = () => {
     setData([]);
     clearIDB().catch(e => console.warn('IDB clear failed:', e));
+    clearRecords().catch(e => console.warn('Supabase clear failed (local cleared):', e));
   };
 
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
