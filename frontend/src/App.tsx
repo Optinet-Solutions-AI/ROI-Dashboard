@@ -100,6 +100,9 @@ function App() {
 
   // On mount: load from IndexedDB first; fall back to Supabase only when IDB is empty
   useEffect(() => {
+    // Request persistent storage so the browser won't evict IDB data under pressure
+    navigator.storage?.persist?.().catch(() => { /* not supported in all browsers */ });
+
     (async () => {
       try {
         const local = await loadFromIDB();
@@ -119,20 +122,34 @@ function App() {
   }, []);
 
   const handleFileUpload = async (file: File) => {
+    setLoading(true);
+
+    // Step 1: Parse the file — report errors clearly
+    let parsedData: PerformanceRecord[];
     try {
-      setLoading(true);
-      const parsedData = await parseExcelFile(file);
-      setData(parsedData);
-      await saveToIDB(parsedData);
-      // Supabase sync is best-effort — never block or alert on its failure
-      clearRecords()
-        .then(() => insertRecords(parsedData))
-        .catch((err: unknown) =>
-          console.warn('Supabase sync failed, data saved locally:', err)
-        );
+      parsedData = await parseExcelFile(file);
     } catch (error) {
       console.error('Error parsing file:', error);
       alert('Failed to read file. Make sure it is a valid Excel or CSV file.');
+      setLoading(false);
+      return;
+    }
+
+    // Step 2: Update the UI immediately
+    setData(parsedData);
+
+    // Step 3: Kick off Supabase cloud sync now — runs regardless of IDB outcome
+    clearRecords()
+      .then(() => insertRecords(parsedData))
+      .catch((err: unknown) =>
+        console.warn('Supabase sync failed, data saved locally:', err)
+      );
+
+    // Step 4: Persist to IndexedDB for instant reload on next visit
+    try {
+      await saveToIDB(parsedData);
+    } catch (idbError) {
+      console.error('IDB save failed — data is in memory and syncing to cloud:', idbError);
     } finally {
       setLoading(false);
     }
