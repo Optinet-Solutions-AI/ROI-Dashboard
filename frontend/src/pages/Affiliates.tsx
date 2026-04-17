@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Download, Filter, ChevronsUpDown } from 'lucide-react';
+import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
@@ -63,6 +63,9 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() => new Set(ALL_COLS.map(c => c.key)));
   const [colVizOpen, setColVizOpen]   = useState(false);
   const [focusedAffiliate, setFocusedAffiliate] = useState<string | null>(null);
+  const [sortCol, setSortCol]         = useState<string | null>('profit');
+  const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
+  const [colSearch, setColSearch]     = useState<Record<string, string>>({});
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
@@ -112,7 +115,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     ...row,
     roi: row.cost > 0 ? row.profit / row.cost : 0,
     cpa: row.ftds > 0 ? row.cost / row.ftds : 0,
-  })).sort((a, b) => b.profit - a.profit);
+  }));
 
   /* ── Search filter ── */
   const searchFiltered = searchTerm.trim() === ''
@@ -152,6 +155,25 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     applyRange('profit',  colFilters.profit);
     applyRange('roi',     colFilters.roi, v => v * 100); // stored as ratio, filter as %
     applyRange('cpa',     colFilters.cpa);
+
+    /* ── Sort by user-selected column/direction ── */
+    if (sortCol) {
+      const isText = TEXT_COLS.includes(sortCol as TextColKey);
+      const dir    = sortDir === 'asc' ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const av = a[sortCol];
+        const bv = b[sortCol];
+        const aEmpty = av == null || av === '';
+        const bEmpty = bv == null || bv === '';
+        if (aEmpty && bEmpty) return 0;
+        if (aEmpty) return 1;   // empties always at the bottom
+        if (bEmpty) return -1;
+        const cmp = isText
+          ? String(av).localeCompare(String(bv))
+          : (Number(av) || 0) - (Number(bv) || 0);
+        return cmp * dir;
+      });
+    }
 
     return result;
   })();
@@ -196,20 +218,41 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const getUniqueValues = (col: TextColKey): string[] =>
     Array.from(new Set(tableData.map(r => String(r[col] ?? '')).filter(Boolean))).sort();
 
-  /* ── Header cell with filter popover ── */
+  /* ── Header cell with filter/sort popover ── */
   const Th = ({ col, label, align = 'left' }: { col: string; label: string; align?: 'left' | 'right' }) => {
-    const active = isColActive(col);
-    const isOpen = openFilterCol === col;
-    const isText = TEXT_COLS.includes(col as TextColKey);
+    const active        = isColActive(col);
+    const isOpen        = openFilterCol === col;
+    const isText        = TEXT_COLS.includes(col as TextColKey);
+    const isSortedHere  = sortCol === col;
+    const search        = colSearch[col] || '';
+
+    const sortByCol = (dir: 'asc' | 'desc') => {
+      setSortCol(col);
+      setSortDir(dir);
+      setOpenFilterCol(null);
+    };
+
+    const sortBtnStyle: React.CSSProperties = {
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: 'none', border: 'none', cursor: 'pointer',
+      color: 'var(--text-primary)', fontSize: '0.75rem',
+      padding: '5px 4px', borderRadius: 4, textAlign: 'left',
+      fontFamily: 'var(--font-body)',
+    };
 
     return (
       <th style={{ position: 'relative', whiteSpace: 'nowrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : 'flex-start', gap: 4 }}>
           {label}
+          {isSortedHere && (
+            sortDir === 'desc'
+              ? <ChevronDown size={11} style={{ color: 'var(--accent, #00d4ff)', flexShrink: 0 }} />
+              : <ChevronUp   size={11} style={{ color: 'var(--accent, #00d4ff)', flexShrink: 0 }} />
+          )}
           <button
             data-col-filter-btn=""
             onClick={e => { e.stopPropagation(); setOpenFilterCol(prev => prev === col ? null : col); }}
-            title={`Filter ${label}`}
+            title={`Filter / sort ${label}`}
             style={{
               background: 'none',
               border: 'none',
@@ -239,7 +282,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
               border: '1px solid var(--border)',
               borderRadius: 8,
               padding: '10px 12px',
-              minWidth: 190,
+              minWidth: 210,
               boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
             }}
           >
@@ -257,37 +300,76 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
               )}
             </div>
 
+            {/* ── Sort buttons ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 8 }}>
+              <button
+                onClick={() => sortByCol('desc')}
+                style={{
+                  ...sortBtnStyle,
+                  background: isSortedHere && sortDir === 'desc' ? 'rgba(0,212,255,0.08)' : 'none',
+                  color:      isSortedHere && sortDir === 'desc' ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
+                }}
+              >
+                <ArrowDownWideNarrow size={12} />
+                Sort high → low
+              </button>
+              <button
+                onClick={() => sortByCol('asc')}
+                style={{
+                  ...sortBtnStyle,
+                  background: isSortedHere && sortDir === 'asc' ? 'rgba(0,212,255,0.08)' : 'none',
+                  color:      isSortedHere && sortDir === 'asc' ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
+                }}
+              >
+                <ArrowUpNarrowWide size={12} />
+                Sort low → high
+              </button>
+            </div>
+
+            <div style={{ height: 1, background: 'var(--border)', margin: '6px 0 8px' }} />
+
             {isText ? (
-              <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {getUniqueValues(col as TextColKey).map(val => {
-                  const checked = (colFilters[col as TextColKey] as string[]).includes(val);
-                  return (
-                    <label
-                      key={val}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '4px 2px', cursor: 'pointer', fontSize: '0.8rem',
-                        color: checked ? 'var(--text-primary)' : 'var(--text-muted)',
-                        userSelect: 'none',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          toggleListItem(col as TextColKey, val);
-                          setOpenFilterCol(null);
-                        }}
-                        style={{ accentColor: 'var(--accent, #00d4ff)', width: 13, height: 13, cursor: 'pointer', flexShrink: 0 }}
-                      />
-                      {val}
-                    </label>
-                  );
-                })}
-                {getUniqueValues(col as TextColKey).length === 0 && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No values</span>
-                )}
-              </div>
+              <>
+                <input
+                  type="text"
+                  placeholder="Search…"
+                  value={search}
+                  onChange={e => setColSearch(prev => ({ ...prev, [col]: e.target.value }))}
+                  autoFocus
+                  style={{ ...popInputStyle, marginBottom: 6 }}
+                />
+                <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {(() => {
+                    const q       = search.trim().toLowerCase();
+                    const matches = getUniqueValues(col as TextColKey).filter(v => !q || v.toLowerCase().includes(q));
+                    if (matches.length === 0) {
+                      return <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No matches</span>;
+                    }
+                    return matches.map(val => {
+                      const checked = (colFilters[col as TextColKey] as string[]).includes(val);
+                      return (
+                        <label
+                          key={val}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '4px 2px', cursor: 'pointer', fontSize: '0.8rem',
+                            color: checked ? 'var(--text-primary)' : 'var(--text-muted)',
+                            userSelect: 'none',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleListItem(col as TextColKey, val)}
+                            style={{ accentColor: 'var(--accent, #00d4ff)', width: 13, height: 13, cursor: 'pointer', flexShrink: 0 }}
+                          />
+                          {val}
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
             ) : (
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
@@ -295,7 +377,6 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                   placeholder="Min"
                   value={(colFilters[col as NumericColKey] as { min: string; max: string }).min}
                   onChange={e => updateRange(col as NumericColKey, 'min', e.target.value)}
-                  autoFocus
                   style={{ ...popInputStyle, width: '50%' }}
                 />
                 <input
@@ -313,8 +394,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     );
   };
 
-  /* ── Top 6 affiliates monthly profit line chart ── */
-  const top6Ids = tableData.slice(0, 6).map(a => a.affiliate_id);
+  /* ── Top 6 affiliates monthly profit line chart (independent of user sort — always profit-desc) ── */
+  const top6Ids = [...tableData].sort((a, b) => b.profit - a.profit).slice(0, 6).map(a => a.affiliate_id);
 
   const monthlyMap: Record<string, Record<string, number>> = {};
   data.forEach(d => {
