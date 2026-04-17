@@ -99,28 +99,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // ── Shared inline style fragments ─────────────────────────────────────────
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'var(--bg-input)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--r-sm)',
-    color: 'var(--text-primary)',
-    fontSize: '0.78rem',
-    padding: '5px 8px',
-    fontFamily: 'var(--font-body)',
-    outline: 'none',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    display: 'block',
-    marginBottom: 6,
-  };
-
   const dropdownHeaderStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
