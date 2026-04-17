@@ -70,7 +70,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
-  /* ── Close filter popover on outside click or scroll (fixed positioning goes stale on scroll) ── */
+  /* ── Close filter popover on outside click ── */
   useEffect(() => {
     if (!openFilterCol) return;
     const clickHandler = (e: MouseEvent) => {
@@ -79,13 +79,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         setOpenFilterCol(null);
       }
     };
-    const scrollHandler = () => setOpenFilterCol(null);
     document.addEventListener('mousedown', clickHandler);
-    window.addEventListener('scroll', scrollHandler, true); // capture to catch container scrolls
-    return () => {
-      document.removeEventListener('mousedown', clickHandler);
-      window.removeEventListener('scroll', scrollHandler, true);
-    };
+    return () => document.removeEventListener('mousedown', clickHandler);
   }, [openFilterCol]);
 
   /* ── Close column-visibility popup on outside click ── */
