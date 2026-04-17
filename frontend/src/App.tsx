@@ -89,7 +89,7 @@ function App() {
     try {
       await clearRecords();
     } catch (err) {
-      alert(`Failed to clear Supabase data: ${err}`);
+      alert(`Failed to remove records. Please try again.\n${err}`);
       return;
     }
     setData([]);
