@@ -274,7 +274,10 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleListItem(col as TextColKey, val)}
+                        onChange={() => {
+                          toggleListItem(col as TextColKey, val);
+                          setOpenFilterCol(null);
+                        }}
                         style={{ accentColor: 'var(--accent, #00d4ff)', width: 13, height: 13, cursor: 'pointer', flexShrink: 0 }}
                       />
                       {val}
