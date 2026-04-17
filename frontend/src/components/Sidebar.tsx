@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   UploadCloud, LayoutDashboard, Users, Megaphone,
   Lightbulb, Table, BarChart3, X, Sun, Moon,
-  Search, ChevronDown, ChevronUp, Trash2,
+  ChevronDown, ChevronUp, Trash2,
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 import type { GlobalFilters, FilterOptions } from '../types/filters';
@@ -64,13 +64,6 @@ const countActiveFilters = (f: GlobalFilters): number => {
 const toggleItem = (arr: string[], item: string): string[] =>
   arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item];
 
-const formatDateYMD = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
 export const Sidebar: React.FC<SidebarProps> = ({
   onFileUpload, onClearData, activeTab, setActiveTab, isOpen, onClose,
   recordCount = 0, filteredCount, filters, filterOptions, onFiltersChange,
@@ -103,13 +96,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const update = (patch: Partial<GlobalFilters>) => {
     if (!filters || !onFiltersChange) return;
     onFiltersChange({ ...filters, ...patch });
-  };
-
-  const setLast3Months = () => {
-    const end = new Date();
-    const start = new Date();
-    start.setMonth(start.getMonth() - 3);
-    update({ dateRange: { start: formatDateYMD(start), end: formatDateYMD(end) } });
   };
 
   // ── Shared inline style fragments ─────────────────────────────────────────
@@ -319,89 +305,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Clear All
               </button>
             )}
-          </div>
-
-          {/* Search */}
-          <div style={{ marginBottom: 10 }}>
-            <span style={labelStyle}>Search Affiliate</span>
-            <div style={{ position: 'relative' }}>
-              <Search
-                size={12}
-                style={{
-                  position: 'absolute',
-                  left: 8,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Name or Partner ID…"
-                value={filters.searchTerm}
-                onChange={e => update({ searchTerm: e.target.value })}
-                style={{ ...inputStyle, paddingLeft: 26, paddingRight: filters.searchTerm ? 26 : 8 }}
-              />
-              {filters.searchTerm && (
-                <button
-                  onClick={() => update({ searchTerm: '' })}
-                  style={{
-                    position: 'absolute',
-                    right: 6,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                  type="button"
-                  aria-label="Clear search"
-                >
-                  <X size={11} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Date Range */}
-          <div style={{ marginBottom: 10 }}>
-            <span style={labelStyle}>Date Range</span>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 5 }}>
-              <input
-                type="date"
-                value={filters.dateRange.start}
-                onChange={e => update({ dateRange: { ...filters.dateRange, start: e.target.value } })}
-                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
-              />
-              <input
-                type="date"
-                value={filters.dateRange.end}
-                onChange={e => update({ dateRange: { ...filters.dateRange, end: e.target.value } })}
-                style={{ ...inputStyle, flex: 1, minWidth: 0 }}
-              />
-            </div>
-            <button
-              onClick={setLast3Months}
-              style={{
-                background: 'var(--bg-input)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--r-xs)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.68rem',
-                cursor: 'pointer',
-                padding: '3px 8px',
-                fontFamily: 'var(--font-body)',
-                width: '100%',
-              }}
-              type="button"
-            >
-              Last 3 Months
-            </button>
           </div>
 
           {/* Multi-select dropdowns */}
