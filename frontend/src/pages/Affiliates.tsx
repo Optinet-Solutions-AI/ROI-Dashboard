@@ -66,20 +66,26 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [sortCol, setSortCol]         = useState<string | null>('profit');
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [colSearch, setColSearch]     = useState<Record<string, string>>({});
+  const [popoverPos, setPopoverPos]   = useState<{ top: number; left: number; right: number } | null>(null);
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
-  /* ── Close filter popover on outside click ── */
+  /* ── Close filter popover on outside click or scroll (fixed positioning goes stale on scroll) ── */
   useEffect(() => {
     if (!openFilterCol) return;
-    const handler = (e: MouseEvent) => {
+    const clickHandler = (e: MouseEvent) => {
       const t = e.target as Element;
       if (!t.closest('[data-col-filter-pop]') && !t.closest('[data-col-filter-btn]')) {
         setOpenFilterCol(null);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const scrollHandler = () => setOpenFilterCol(null);
+    document.addEventListener('mousedown', clickHandler);
+    window.addEventListener('scroll', scrollHandler, true); // capture to catch container scrolls
+    return () => {
+      document.removeEventListener('mousedown', clickHandler);
+      window.removeEventListener('scroll', scrollHandler, true);
+    };
   }, [openFilterCol]);
 
   /* ── Close column-visibility popup on outside click ── */
@@ -251,7 +257,20 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           )}
           <button
             data-col-filter-btn=""
-            onClick={e => { e.stopPropagation(); setOpenFilterCol(prev => prev === col ? null : col); }}
+            onClick={e => {
+              e.stopPropagation();
+              if (openFilterCol === col) {
+                setOpenFilterCol(null);
+              } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setPopoverPos({
+                  top:   rect.bottom + 4,
+                  left:  rect.left,
+                  right: window.innerWidth - rect.right,
+                });
+                setOpenFilterCol(col);
+              }
+            }}
             title={`Filter / sort ${label}`}
             style={{
               background: 'none',
@@ -269,15 +288,15 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           </button>
         </div>
 
-        {isOpen && (
+        {isOpen && popoverPos && (
           <div
             data-col-filter-pop=""
             style={{
-              position: 'absolute',
-              top: 'calc(100% + 4px)',
-              left: align === 'right' ? 'auto' : 0,
-              right: align === 'right' ? 0 : 'auto',
-              zIndex: 300,
+              position: 'fixed',
+              top:   popoverPos.top,
+              left:  align === 'right' ? 'auto' : popoverPos.left,
+              right: align === 'right' ? popoverPos.right : 'auto',
+              zIndex: 1000,
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
               borderRadius: 8,
