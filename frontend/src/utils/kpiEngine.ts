@@ -83,7 +83,6 @@ export const getInsights = (data: PerformanceRecord[]) => {
 
   const affiliates = Object.keys(affiliateMap).map(id => ({
     id,
-    name: affiliateMap[id].name,
     ...affiliateMap[id],
     roi: affiliateMap[id].cost > 0 ? affiliateMap[id].profit / affiliateMap[id].cost : 0,
   }));
