@@ -40,13 +40,20 @@ export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
   );
 
   /* Top affiliates by profit */
-  const affMap: Record<string, number> = {};
+  const affMap: Record<string, { name: string; profit: number }> = {};
   data.forEach(d => {
     if (!d.affiliate_id) return;
-    affMap[d.affiliate_id] = (affMap[d.affiliate_id] || 0) + ((Number(d.revenue) || 0) - (Number(d.cost) || 0));
+    if (!affMap[d.affiliate_id]) affMap[d.affiliate_id] = { name: '', profit: 0 };
+    if (d.affiliate_name && !affMap[d.affiliate_id].name) affMap[d.affiliate_id].name = d.affiliate_name;
+    affMap[d.affiliate_id].profit += (Number(d.revenue) || 0) - (Number(d.cost) || 0);
   });
   const topAffiliates = Object.keys(affMap)
-    .map(key => ({ affiliate_id: key, profit: affMap[key] }))
+    .map(key => ({
+      affiliate_id:   key,
+      affiliate_name: affMap[key].name,
+      label:          affMap[key].name ? `${affMap[key].name} (${key})` : key,
+      profit:         affMap[key].profit,
+    }))
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 10);
 
@@ -198,10 +205,10 @@ export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
             />
             <YAxis
               type="category"
-              dataKey="affiliate_id"
+              dataKey="label"
               stroke={axisStroke}
               tick={{ fontSize: 11, fill: '#e9eef5' }}
-              width={70}
+              width={160}
               tickLine={false}
             />
             <Tooltip

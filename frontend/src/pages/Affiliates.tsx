@@ -468,11 +468,14 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                 />
                 <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="6 3" strokeWidth={1} />
                 {top6Ids.map((id, idx) => {
-                  const color = LINE_COLORS[idx % LINE_COLORS.length];
+                  const color     = LINE_COLORS[idx % LINE_COLORS.length];
                   const isFocused = focusedAffiliate === null || focusedAffiliate === id;
+                  const affName   = tableData.find(r => r.affiliate_id === id)?.affiliate_name;
+                  const lineName  = affName ? `${affName} (${id})` : id;
                   return (
                     <Line
                       key={id}
+                      name={lineName}
                       type="monotone"
                       dataKey={id}
                       stroke={color}
@@ -490,9 +493,10 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
             {/* Clickable custom legend */}
             <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 4, paddingTop: 10 }}>
               {top6Ids.map((id, idx) => {
-                const color = LINE_COLORS[idx % LINE_COLORS.length];
+                const color     = LINE_COLORS[idx % LINE_COLORS.length];
                 const isFocused = focusedAffiliate === null || focusedAffiliate === id;
-                const name = tableData.find(r => r.affiliate_id === id)?.affiliate_name || id;
+                const affName   = tableData.find(r => r.affiliate_id === id)?.affiliate_name;
+                const name      = affName ? `${affName} (${id})` : id;
                 return (
                   <button
                     key={id}

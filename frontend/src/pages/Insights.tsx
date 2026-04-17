@@ -24,7 +24,12 @@ export const Insights: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
                 #{String(idx + 1).padStart(2, '0')}
               </span>
               {' '}
-              <strong>{aff}</strong>
+              <strong>{aff.name || aff.id}</strong>
+              {aff.name && (
+                <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', marginLeft: 8 }}>
+                  ({aff.id})
+                </span>
+              )}
             </div>
           )) : (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Not enough data.</p>
@@ -40,7 +45,12 @@ export const Insights: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
             <div key={idx} className="insight-banner" style={{ borderLeftColor: 'var(--red)', background: 'linear-gradient(90deg, rgba(239,68,68,0.06) 0%, rgba(6,11,19,0.3) 100%)' }}>
               <span className="badge badge--red">Action Needed</span>
               {' '}
-              <strong style={{ marginLeft: 6 }}>{aff}</strong>
+              <strong style={{ marginLeft: 6 }}>{aff.name || aff.id}</strong>
+              {aff.name && (
+                <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', marginLeft: 8 }}>
+                  ({aff.id})
+                </span>
+              )}
             </div>
           )) : (
             <p style={{ color: 'var(--green)', fontSize: '0.875rem' }}>
