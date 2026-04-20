@@ -29,11 +29,14 @@ function reducer(state: State, action: Action): State {
       return { ...state, liveStatus: action.message };
     case 'TOKEN':
       return { ...state, liveAnswer: state.liveAnswer + action.delta };
-    case 'DONE':
+    case 'DONE': {
+      const text = action.payload.answer || state.liveAnswer;
+      const next: State = { ...state, status: 'done', liveStatus: null, liveAnswer: '' };
+      if (!text) return next;   // empty done (after error) — don't add a ghost message
       return {
-        ...state, status: 'done', liveStatus: null,
+        ...next,
         thread: [...state.thread, {
-          role: 'assistant', text: action.payload.answer || state.liveAnswer,
+          role: 'assistant', text,
           tools_used: action.payload.tools_used,
           prompt_tokens: action.payload.prompt_tokens,
           completion_tokens: action.payload.completion_tokens,
@@ -42,8 +45,8 @@ function reducer(state: State, action: Action): State {
           log_id: action.payload.log_id,
           ts: Date.now(),
         }],
-        liveAnswer: '',
       };
+    }
     case 'ERROR':
       return {
         ...state, status: 'error', liveStatus: null, liveAnswer: '',
