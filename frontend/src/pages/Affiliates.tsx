@@ -982,7 +982,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                     />
                     <Tooltip
                       contentStyle={tooltipStyle}
-                      formatter={(val: any, name: string) => [formatter.format(Number(val ?? 0)), name.charAt(0).toUpperCase() + name.slice(1)]}
+                      formatter={(val: any, name: any) => [formatter.format(Number(val ?? 0)), String(name).charAt(0).toUpperCase() + String(name).slice(1)]}
                     />
                     <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="4 3" strokeWidth={1} />
                     <Bar dataKey="profit" fill="#00d4ff" radius={[4,4,0,0]} maxBarSize={36}
