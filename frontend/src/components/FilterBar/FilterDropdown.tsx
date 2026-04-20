@@ -18,14 +18,25 @@ export function FilterDropdown({ label, options, selected, onChange, windowSize 
   const [open, setOpen]     = useState(false);
   const [query, setQuery]   = useState('');
   const rootRef             = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
     document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   const filtered = useMemo(() => {
@@ -34,7 +45,7 @@ export function FilterDropdown({ label, options, selected, onChange, windowSize 
     return base.slice(0, windowSize);
   }, [options, query, windowSize]);
 
-  const truncated = options.length > filtered.length + (query ? 0 : 0) && filtered.length === windowSize;
+  const truncated = filtered.length === windowSize && options.length > windowSize;
 
   const toggle = (value: string) => {
     onChange(selected.includes(value) ? selected.filter(s => s !== value) : [...selected, value]);
@@ -45,10 +56,12 @@ export function FilterDropdown({ label, options, selected, onChange, windowSize 
   return (
     <div ref={rootRef} className="filter-dropdown">
       <button
+        ref={triggerRef}
         type="button"
         className={`filter-dropdown__trigger${selected.length ? ' is-active' : ''}`}
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
+        aria-haspopup="listbox"
       >
         <span className="filter-dropdown__label">{label}</span>
         <span className="filter-dropdown__value">
@@ -80,7 +93,7 @@ export function FilterDropdown({ label, options, selected, onChange, windowSize 
             className="filter-dropdown__option filter-dropdown__option--all"
             onClick={() => onChange([])}
           >
-            <input type="checkbox" checked={allSelected} readOnly />
+            <input type="checkbox" checked={allSelected} readOnly tabIndex={-1} />
             <span>(All)</span>
           </button>
 
@@ -91,7 +104,7 @@ export function FilterDropdown({ label, options, selected, onChange, windowSize 
               className="filter-dropdown__option"
               onClick={() => toggle(opt)}
             >
-              <input type="checkbox" checked={selected.includes(opt)} readOnly />
+              <input type="checkbox" checked={selected.includes(opt)} readOnly tabIndex={-1} />
               <span>{opt}</span>
             </button>
           ))}
