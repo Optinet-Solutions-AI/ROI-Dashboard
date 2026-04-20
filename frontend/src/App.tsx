@@ -9,7 +9,7 @@ import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
 import { Deleted } from './pages/Deleted';
-import { fetchRecords, clearRecords, insertRecords } from './lib/db';
+import { fetchRecords, replaceRecords, clearRecords } from './lib/db';
 
 // ── IndexedDB persistence (no size limit — localStorage tops out at ~5 MB) ──
 const IDB_NAME    = 'roi-dashboard-db';
@@ -92,23 +92,24 @@ function App() {
   const [isDraggingOver, setDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // On mount: load from IndexedDB first; fall back to Supabase only when IDB is empty
+  // On mount: Supabase is source of truth. Fall back to IndexedDB cache only when offline.
   useEffect(() => {
-    // Request persistent storage so the browser won't evict IDB data under pressure
     navigator.storage?.persist?.().catch(() => { /* not supported in all browsers */ });
 
     (async () => {
       try {
-        const local = await loadFromIDB();
-        if (local.length > 0) { setData(local); return; }
-        // IDB empty — try Supabase as a one-time fallback (first visit / cleared storage)
-        const remote = await fetchRecords().catch(() => [] as PerformanceRecord[]);
-        if (remote.length > 0) {
-          setData(remote);
-          saveToIDB(remote).catch(e => console.warn('IDB save failed:', e));
+        const remote = await fetchRecords();
+        setData(remote);
+        // Mirror to IDB so next load is instant and offline-capable
+        saveToIDB(remote).catch(e => console.warn('IDB cache save failed:', e));
+      } catch (err) {
+        console.warn('Supabase fetch failed — falling back to local cache:', err);
+        try {
+          const local = await loadFromIDB();
+          if (local.length > 0) setData(local);
+        } catch (idbErr) {
+          console.error('Both Supabase and IDB failed:', idbErr);
         }
-      } catch (e) {
-        console.error('Failed to load persisted data:', e);
       } finally {
         setLoading(false);
       }
@@ -129,33 +130,43 @@ function App() {
       return;
     }
 
-    // Step 2: Update the UI immediately
-    setData(parsedData);
-
-    // Step 3: Kick off Supabase cloud sync now — runs regardless of IDB outcome
-    clearRecords()
-      .then(() => insertRecords(parsedData))
-      .catch((err: unknown) =>
-        console.warn('Supabase sync failed, data saved locally:', err)
+    // Step 2: Sync to Supabase (source of truth) — fail loudly on error and abort the upload
+    try {
+      await replaceRecords(parsedData);
+    } catch (err) {
+      console.error('Supabase sync failed:', err);
+      alert(
+        'Failed to save data to the cloud. Check your internet connection and try again.\n\n' +
+        'Your existing data has not been modified.'
       );
+      setLoading(false);
+      return;
+    }
 
-    // Step 4: Persist to IndexedDB for instant reload on next visit
+    // Step 3: Swap in the new data and refresh the local cache
+    setData(parsedData);
     try {
       await saveToIDB(parsedData);
     } catch (idbError) {
-      console.error('IDB save failed — data is in memory and syncing to cloud:', idbError);
-    } finally {
-      setLoading(false);
+      console.warn('IDB cache save failed (data is safely in the cloud):', idbError);
     }
+    setLoading(false);
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
+    try {
+      await clearRecords();
+    } catch (err) {
+      console.error('Supabase clear failed:', err);
+      alert('Failed to clear cloud data. Check your internet connection and try again.');
+      return;
+    }
+
     setDeletedData(data);
     setDeletedAt(new Date());
     setData([]);
     setActiveTab('Deleted');
-    clearIDB().catch(e => console.warn('IDB clear failed:', e));
-    clearRecords().catch(e => console.warn('Supabase clear failed (local cleared):', e));
+    clearIDB().catch(e => console.warn('IDB cache clear failed:', e));
   };
 
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault(); setDragging(true); };
