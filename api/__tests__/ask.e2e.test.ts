@@ -122,4 +122,43 @@ describe('/api/ask', () => {
     await handler(req, res);
     expect(res.statusCode).toBe(400);
   });
+
+  it('emits TOKEN_BUDGET when agent returns token_budget', async () => {
+    (checkRateLimit as any).mockResolvedValue({ allowed: true });
+    (runRelevanceGuard as any).mockResolvedValue({ verdict: 'on_topic', tokens: 50 });
+    (runAgent as any).mockResolvedValue({
+      status: 'token_budget', answer: '', tools_used: [], iterations: 3,
+      prompt_tokens: 4000, completion_tokens: 4000, total_tokens: 8000,
+    });
+    const req = fakeReq({ question: 'q' });
+    const res = fakeRes();
+    await handler(req, res);
+    const out = res.chunks.join('');
+    expect(out).toMatch(/event: error[\s\S]*TOKEN_BUDGET/);
+  });
+
+  it('emits TOOL_FAILED when agent returns tool_failed', async () => {
+    (checkRateLimit as any).mockResolvedValue({ allowed: true });
+    (runRelevanceGuard as any).mockResolvedValue({ verdict: 'on_topic', tokens: 50 });
+    (runAgent as any).mockResolvedValue({
+      status: 'tool_failed', answer: '', tools_used: [], iterations: 1,
+      prompt_tokens: 50, completion_tokens: 0, total_tokens: 50,
+    });
+    const req = fakeReq({ question: 'q' });
+    const res = fakeRes();
+    await handler(req, res);
+    const out = res.chunks.join('');
+    expect(out).toMatch(/event: error[\s\S]*TOOL_FAILED/);
+  });
+
+  it('emits MODEL_FAILED when agent throws unexpectedly', async () => {
+    (checkRateLimit as any).mockResolvedValue({ allowed: true });
+    (runRelevanceGuard as any).mockResolvedValue({ verdict: 'on_topic', tokens: 50 });
+    (runAgent as any).mockRejectedValue(new Error('OpenAI 500'));
+    const req = fakeReq({ question: 'q' });
+    const res = fakeRes();
+    await handler(req, res);
+    const out = res.chunks.join('');
+    expect(out).toMatch(/event: error[\s\S]*MODEL_FAILED/);
+  });
 });
