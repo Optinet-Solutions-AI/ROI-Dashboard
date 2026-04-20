@@ -13,6 +13,7 @@ interface SidebarProps {
   isOpen:        boolean;
   onClose:       () => void;
   recordCount?:  number;
+  filteredCount?: number;
   deletedCount?: number;
 }
 
@@ -27,7 +28,7 @@ const TABS = [
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onFileUpload, onClearData, activeTab, setActiveTab, isOpen, onClose,
-  recordCount = 0, deletedCount = 0,
+  recordCount = 0, filteredCount = recordCount, deletedCount = 0,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
@@ -86,7 +87,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {recordCount > 0 && (
           <div className="sidebar__data-status">
             <span className="sidebar__data-dot" />
-            {recordCount.toLocaleString()} records loaded
+            {filteredCount === recordCount
+              ? `${recordCount.toLocaleString()} records loaded`
+              : `${filteredCount.toLocaleString()} of ${recordCount.toLocaleString()} records`}
           </div>
         )}
       </div>

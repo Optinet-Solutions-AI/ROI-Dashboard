@@ -217,7 +217,8 @@ function AppShell() {
         setActiveTab={switchTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        recordCount={filteredData.length}
+        recordCount={data.length}
+        filteredCount={filteredData.length}
         deletedCount={deletedData.length}
       />
 

@@ -8,6 +8,7 @@ const COLUMN_ALIASES: Record<string, string> = {
   partner_id:                'affiliate_id',
   partner_name:              'affiliate_name',
   affiliate:                 'affiliate_id',
+  // "Company_name_f" is the workbook's formatted/denormalized company-name column.
   company_name_f:            'company_name',
   campaign_name:             'campaign',
   stats_date:                'date',
