@@ -50,8 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let toolsUsed: any[] = [];
   let iterations = 0, prompt_tokens = 0, completion_tokens = 0, total_tokens = 0;
   const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || null;
+  let responded = false;
 
   const finishLog = async () => {
+    if (responded) return 'unknown';
     try {
       const { id } = await insertLog({
         session_id: sessionId,
@@ -73,12 +75,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Wall-clock guard
   const timeout = setTimeout(() => {
+    if (responded) return;
     logStatus = 'iteration_cap';
     logErrorCode = 'ITERATION_CAP';
     sendError('ITERATION_CAP', 'Took too long. Try a narrower question.');
     finishLog()
       .then((id) => send({ type: 'done', data: doneEmpty(id) }))
-      .finally(() => res.end());
+      .finally(() => {
+        responded = true;
+        res.end();
+      });
   }, TOTAL_TIMEOUT_MS);
 
   try {
@@ -89,7 +95,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logErrorCode = 'RATE_LIMITED';
       const msg = rl.reason === 'global'
         ? 'The dashboard has hit its hourly Ask AI limit. Try again soon.'
-        : `You've hit your hourly limit. Try again at ${rl.retry_at?.toLocaleTimeString() ?? 'later'}.`;
+        : rl.reason === 'session'
+        ? `You've hit your hourly limit. Try again at ${rl.retry_at?.toLocaleTimeString() ?? 'later'}.`
+        : 'Something went wrong. Please try again.';
       sendError('RATE_LIMITED', msg);
       const log_id = await finishLog();
       send({ type: 'done', data: doneEmpty(log_id) });
@@ -160,6 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   function cleanup() {
+    responded = true;
     clearTimeout(timeout);
     res.end();
   }
@@ -171,7 +180,6 @@ function mapErrorCode(s: LogStatus): ErrorCode {
     case 'token_budget':  return 'TOKEN_BUDGET';
     case 'tool_failed':   return 'TOOL_FAILED';
     case 'model_failed':  return 'MODEL_FAILED';
-    case 'sql_rejected':  return 'SQL_REJECTED';
     default:              return 'MODEL_FAILED';
   }
 }
