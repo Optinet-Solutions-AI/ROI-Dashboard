@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  UploadCloud, LayoutDashboard, Users, Megaphone,
+  UploadCloud, LayoutDashboard, Users,
   Lightbulb, Table, BarChart3, X, Sun, Moon, Trash2, Clock, Sparkles,
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
@@ -20,7 +20,6 @@ const TABS = [
   { id: 'Overview',   label: 'Overview',  Icon: LayoutDashboard },
   { id: 'AskAI',      label: 'Ask AI',    Icon: Sparkles        },
   { id: 'Affiliates', label: 'Affiliates', Icon: Users           },
-  { id: 'Campaigns',  label: 'Campaigns',  Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',   Icon: Lightbulb       },
   { id: 'Data',       label: 'Raw Data',   Icon: Table           },
 ];

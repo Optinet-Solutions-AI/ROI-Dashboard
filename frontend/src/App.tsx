@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Lightbulb, Table, Menu, Trash2, Sparkles } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
 import { Overview } from './pages/Overview';
 import { Affiliates } from './pages/Affiliates';
-import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
 import { Deleted } from './pages/Deleted';
@@ -79,7 +78,6 @@ const TABS = [
   { id: 'Overview',   label: 'Overview',   Icon: LayoutDashboard },
   { id: 'AskAI',      label: 'Ask AI',     Icon: Sparkles        },
   { id: 'Affiliates', label: 'Affiliates',  Icon: Users           },
-  { id: 'Campaigns',  label: 'Campaigns',   Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',    Icon: Lightbulb       },
   { id: 'Data',       label: 'Data',        Icon: Table           },
   { id: 'Deleted',    label: 'Deleted',     Icon: Trash2          },
@@ -269,7 +267,6 @@ function App() {
           <div className="fade-in">
             {activeTab === 'Overview'   && <Overview   data={data} />}
             {activeTab === 'Affiliates' && <Affiliates data={data} />}
-            {activeTab === 'Campaigns'  && <Campaigns  data={data} />}
             {activeTab === 'Insights'   && <Insights   data={data} />}
             {activeTab === 'Data'       && <Data       data={data} />}
           </div>
