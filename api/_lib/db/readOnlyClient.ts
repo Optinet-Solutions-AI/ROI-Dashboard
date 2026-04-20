@@ -1,7 +1,7 @@
 // api/_lib/db/readOnlyClient.ts
-// Pooled pg client running as ask_ai_readonly. Used by every tool except
-// run_safe_sql (which goes through the SECURITY DEFINER ask_query function
-// via this same pool — the role can EXECUTE it).
+// Pooled pg client running as ask_ai_readonly. Used by all tools including
+// run_safe_sql. The ask_ai_readonly role (SELECT-only, statement_timeout=5s)
+// and the LIMIT injection in sqlValidator enforce safety at the connection level.
 
 import pg from 'pg';
 

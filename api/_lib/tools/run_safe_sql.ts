@@ -11,11 +11,7 @@ export async function runSafeSql(args: RunSafeSqlArgs) {
     throw err;
   }
 
-  const result = await readOnlyQuery<{ ask_query: unknown[] }>(
-    'SELECT public.ask_query($1) AS ask_query',
-    [v.sql],
-  );
-  const rows = (result[0]?.ask_query ?? []) as Record<string, unknown>[];
+  const rows = await readOnlyQuery<Record<string, unknown>>(v.sql);
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
   return {

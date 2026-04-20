@@ -1,34 +1,14 @@
--- 20260420_03_ask_query_function.sql
--- Layer 3 of the SQL safety stack.
--- run_safe_sql tool calls this function rather than executing arbitrary SQL.
+-- 20260420_03_ask_query_function.sql  (SUPERSEDED — do not apply)
 --
--- Uses SECURITY INVOKER (not DEFINER): the function is always called from the
--- API via the ASK_AI_READONLY_DATABASE_URL pool, so the caller IS already
--- ask_ai_readonly. INVOKER + a wrapping LIMIT subquery gives the same
--- containment as DEFINER ownership-transfer would, and it sidesteps the
--- "must be able to SET ROLE" permission requirement on managed Postgres
--- (Supabase, RDS, etc.) where the SQL editor user is not a superuser and
--- doesn't hold ADMIN OPTION on ask_ai_readonly.
-
-CREATE OR REPLACE FUNCTION public.ask_query(sql_text text)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
-AS $$
-DECLARE
-  result_rows jsonb;
-  wrapped_sql text;
-BEGIN
-  -- Wrap the validated SELECT in a hard-capped subquery.
-  wrapped_sql := format(
-    'SELECT coalesce(jsonb_agg(row_to_json(t)), ''[]''::jsonb) FROM (%s) t LIMIT 500',
-    sql_text
-  );
-  EXECUTE wrapped_sql INTO result_rows;
-  RETURN result_rows;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.ask_query(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.ask_query(text) TO ask_ai_readonly;
+-- Originally created a public.ask_query() plpgsql wrapper as Layer 3 of the
+-- SQL safety stack. Removed because Supabase SQL Editor mis-parses dollar-
+-- quoted plpgsql bodies containing EXECUTE … INTO, and the layer is redundant:
+--
+--   Layer 1  node-sql-parser validates + injects LIMIT 500 (api/_lib/safety/sqlValidator.ts)
+--   Layer 2  ask_ai_readonly role: SELECT only on performance_records,
+--            statement_timeout = 5 s, no write or DDL capability
+--
+-- run_safe_sql.ts now calls readOnlyQuery(v.sql) directly through the
+-- ask_ai_readonly connection pool.  Safety guarantees are unchanged.
+--
+-- This file is kept for audit purposes.  You do NOT need to run it.
