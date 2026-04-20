@@ -109,7 +109,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
           const sheet = workbook.Sheets[sheetName];
 
           // First pass: get raw rows to detect header offset
-          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
           const headerRowIdx = findHeaderRowIndex(rawRows);
 
           let jsonRows: Record<string, any>[];
@@ -127,7 +127,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               return obj;
             }).filter(Boolean) as Record<string, any>[];
           } else {
-            jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: false }) as Record<string, any>[];
+            jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'yyyy-mm-dd' }) as Record<string, any>[];
           }
 
           for (const row of jsonRows) {
@@ -149,14 +149,15 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
 
             // problematic_source in the workbook is 0/1 — make sure it's numeric.
             // Use Number() (not parseFloat) for strictness: "1 affiliate" should reject.
-            // Empty strings are treated as absent rather than promoted to 0.
-            if (
-              newRow.problematic_source != null &&
-              newRow.problematic_source !== '' &&
-              typeof newRow.problematic_source !== 'number'
-            ) {
-              const n = Number(newRow.problematic_source);
-              newRow.problematic_source = Number.isFinite(n) ? n : undefined;
+            // Empty or whitespace-only strings are treated as absent (not promoted to 0).
+            if (newRow.problematic_source != null && typeof newRow.problematic_source !== 'number') {
+              const raw = String(newRow.problematic_source).trim();
+              if (raw === '') {
+                newRow.problematic_source = undefined;
+              } else {
+                const n = Number(raw);
+                newRow.problematic_source = Number.isFinite(n) ? n : undefined;
+              }
             }
 
             // Skip entirely blank rows
