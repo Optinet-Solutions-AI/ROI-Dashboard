@@ -4,6 +4,6 @@
   "installCommand": "cd frontend && npm install && cd ../api && npm install",
   "framework": "vite",
   "functions": {
-    "api/**/*.ts": { "runtime": "@vercel/node@5.x" }
+    "api/**/*.ts": { "maxDuration": 60 }
   }
 }
