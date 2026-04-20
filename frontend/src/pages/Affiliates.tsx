@@ -873,6 +873,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         <>
           {/* Backdrop */}
           <div
+            className="drawer-backdrop"
             style={{
               position: 'fixed', inset: 0, zIndex: 900,
               background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
@@ -881,7 +882,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           {/* Drawer panel */}
           <div
             ref={drawerRef}
-            className="scroll-hidden"
+            className="scroll-hidden drawer-panel"
             style={{
               position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 901,
               width: 'min(520px, 100vw)',

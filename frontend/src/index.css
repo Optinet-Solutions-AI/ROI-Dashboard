@@ -1486,6 +1486,21 @@ body::before {
 }
 @keyframes ask-spin { to { transform: rotate(360deg); } }
 
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.drawer-panel {
+  animation: drawerSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.drawer-backdrop {
+  animation: backdropFadeIn 0.2s ease both;
+}
+
 .ask-error {
   align-self: stretch; border-radius: 10px; padding: 10px 14px; font-size: 0.9rem;
 }
