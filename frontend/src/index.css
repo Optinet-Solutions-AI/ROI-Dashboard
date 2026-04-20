@@ -1478,3 +1478,61 @@ body::before {
 .ask-error.off-topic     { background: #3a2f1e; border-left: 3px solid #f59e0b; color: #cbd5e1; }
 .ask-error.iteration-cap { background: #1e293b; border-left: 3px solid #7c3aed; color: #cbd5e1; }
 .ask-error.generic       { background: #3a1e1e; border-left: 3px solid #ef4444; color: #cbd5e1; }
+
+/* ─── Ask AI — Light Mode Overrides ─── */
+[data-theme="light"] .ask-hero__title    { color: #000000; }
+[data-theme="light"] .ask-hero__subtitle { color: #000000; }
+
+[data-theme="light"] .ask-search-bar {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .ask-search-bar__input          { color: #000000; }
+[data-theme="light"] .ask-search-bar__input::placeholder { color: #6b7280; }
+[data-theme="light"] .ask-search-bar__icon-btn        { color: #374151; }
+[data-theme="light"] .ask-search-bar__icon-btn:hover  { color: #000000; }
+
+[data-theme="light"] .ask-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .ask-card__question {
+  color: #000000;
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .ask-card--answer p,
+[data-theme="light"] .ask-card--answer ul,
+[data-theme="light"] .ask-card--answer ol { color: #000000; }
+[data-theme="light"] .ask-card--answer strong { color: #000000; }
+[data-theme="light"] .ask-card--answer code {
+  background: #f1f5f9; color: #92400e;
+}
+[data-theme="light"] .ask-card--answer th,
+[data-theme="light"] .ask-card--answer td {
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+[data-theme="light"] .ask-card--answer th {
+  background: #f1f5f9;
+  color: #000000;
+}
+
+[data-theme="light"] .ask-suggestions__label { color: #374151; }
+[data-theme="light"] .ask-chip {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #000000;
+}
+
+[data-theme="light"] .ask-status         { color: #374151; }
+[data-theme="light"] .ask-status__spinner { border-color: rgba(0,0,0,0.12); border-top-color: var(--gold); }
+
+[data-theme="light"] .ask-msg--assistant {
+  background: #f1f5f9; color: #000000; border-color: rgba(0,0,0,0.1);
+}
+[data-theme="light"] .ask-msg--assistant th,
+[data-theme="light"] .ask-msg--assistant td { border-color: rgba(0,0,0,0.1); }
+
+[data-theme="light"] .ask-error.rate-limited  { background: #dbeafe; color: #1e3a5f; }
+[data-theme="light"] .ask-error.off-topic     { background: #fef3c7; color: #78350f; }
+[data-theme="light"] .ask-error.iteration-cap { background: #ede9fe; color: #4c1d95; }
+[data-theme="light"] .ask-error.generic       { background: #fee2e2; color: #7f1d1d; }
