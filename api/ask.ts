@@ -76,7 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logStatus = 'iteration_cap';
     logErrorCode = 'ITERATION_CAP';
     sendError('ITERATION_CAP', 'Took too long. Try a narrower question.');
-    finishLog().finally(() => res.end());
+    finishLog()
+      .then((id) => send({ type: 'done', data: doneEmpty(id) }))
+      .finally(() => res.end());
   }, TOTAL_TIMEOUT_MS);
 
   try {
@@ -152,7 +154,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logStatus = 'model_failed';
     logErrorCode = 'MODEL_FAILED';
     sendError('MODEL_FAILED', 'Something went wrong. Please try again.');
-    await finishLog();
+    const log_id = await finishLog();
+    send({ type: 'done', data: doneEmpty(log_id) });
     return cleanup();
   }
 
