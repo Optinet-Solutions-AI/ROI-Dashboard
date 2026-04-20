@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
@@ -67,7 +66,6 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [sortCol, setSortCol]         = useState<string | null>('profit');
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [colSearch, setColSearch]     = useState<Record<string, string>>({});
-  const [popoverPos, setPopoverPos]   = useState<{ top: number; left: number; right: number } | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo,   setDateTo]   = useState('');
   const colVizRef = React.useRef<HTMLDivElement>(null);
@@ -274,17 +272,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
             data-col-filter-btn={col}
             onClick={e => {
               e.stopPropagation();
-              if (openFilterCol === col) {
-                setOpenFilterCol(null);
-              } else {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setPopoverPos({
-                  top:   rect.bottom + 4,
-                  left:  rect.left,
-                  right: window.innerWidth - rect.right,
-                });
-                setOpenFilterCol(col);
-              }
+              setOpenFilterCol(openFilterCol === col ? null : col);
             }}
             title={`Filter / sort ${label}`}
             style={{
@@ -303,14 +291,14 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           </button>
         </div>
 
-        {isOpen && popoverPos && createPortal(
+        {isOpen && (
           <div
             data-col-filter-pop=""
             style={{
-              position: 'fixed',
-              top:   popoverPos.top,
-              left:  align === 'right' ? 'auto' : popoverPos.left,
-              right: align === 'right' ? popoverPos.right : 'auto',
+              position: 'absolute',
+              top: '100%',
+              left:  align === 'right' ? 'auto' : 0,
+              right: align === 'right' ? 0 : 'auto',
               zIndex: 1000,
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
@@ -389,7 +377,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                           <input
                             type="checkbox"
                             checked={checked}
-                            onChange={() => toggleListItem(col as TextColKey, val)}
+                            onChange={() => { toggleListItem(col as TextColKey, val); setOpenFilterCol(null); }}
                             style={{ accentColor: 'var(--accent, #00d4ff)', width: 13, height: 13, cursor: 'pointer', flexShrink: 0 }}
                           />
                           {val}
@@ -417,8 +405,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                 />
               </div>
             )}
-          </div>,
-          document.body,
+          </div>
         )}
       </th>
     );
