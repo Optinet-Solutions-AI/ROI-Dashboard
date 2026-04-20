@@ -3,6 +3,17 @@
 -- run_safe_sql tool calls this function rather than executing arbitrary SQL.
 -- The function is owned by ask_ai_readonly and runs with that role's grants.
 
+-- Postgres requires the current role to be a member of `ask_ai_readonly` before
+-- it can transfer object ownership to that role. Grant membership idempotently
+-- to whichever role is running this migration (typically `postgres` in the
+-- Supabase SQL Editor).
+DO $$
+BEGIN
+  IF NOT pg_has_role(current_user, 'ask_ai_readonly', 'MEMBER') THEN
+    EXECUTE format('GRANT ask_ai_readonly TO %I', current_user);
+  END IF;
+END$$;
+
 CREATE OR REPLACE FUNCTION public.ask_query(sql_text text)
 RETURNS jsonb
 LANGUAGE plpgsql
