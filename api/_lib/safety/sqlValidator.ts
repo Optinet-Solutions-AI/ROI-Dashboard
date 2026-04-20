@@ -1,5 +1,8 @@
 // api/_lib/safety/sqlValidator.ts
-import { Parser } from 'node-sql-parser';
+// node-sql-parser ships as CommonJS — pull the namespace and destructure
+// so the import works under "type": "module" on Vercel/Node 24.
+import sqlParserPkg from 'node-sql-parser';
+const { Parser } = sqlParserPkg as unknown as { Parser: new () => { astify: (sql: string, opts?: any) => any } };
 
 const ALLOWED_TABLES = new Set(['performance_records']);
 const FORBIDDEN_PREFIXES = ['pg_', 'auth.', 'storage.', 'information_schema'];
