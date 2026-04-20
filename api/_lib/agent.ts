@@ -153,6 +153,10 @@ export async function runAgent(input: AgentInput): Promise<AgentResult> {
           });
           continue;
         }
+        console.error(`[agent] tool ${name} failed:`, {
+          message: err?.message, code: err?.code, detail: err?.detail, stack: err?.stack,
+          args: call.function.arguments,
+        });
         return done('tool_failed', '');
       }
 
