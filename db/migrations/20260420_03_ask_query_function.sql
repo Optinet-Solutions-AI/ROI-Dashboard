@@ -1,23 +1,19 @@
 -- 20260420_03_ask_query_function.sql
 -- Layer 3 of the SQL safety stack.
 -- run_safe_sql tool calls this function rather than executing arbitrary SQL.
--- The function is owned by ask_ai_readonly and runs with that role's grants.
-
--- Postgres requires the current role to be a member of `ask_ai_readonly` before
--- it can transfer object ownership to that role. Grant membership idempotently
--- to whichever role is running this migration (typically `postgres` in the
--- Supabase SQL Editor).
-DO $$
-BEGIN
-  IF NOT pg_has_role(current_user, 'ask_ai_readonly', 'MEMBER') THEN
-    EXECUTE format('GRANT ask_ai_readonly TO %I', current_user);
-  END IF;
-END$$;
+--
+-- Uses SECURITY INVOKER (not DEFINER): the function is always called from the
+-- API via the ASK_AI_READONLY_DATABASE_URL pool, so the caller IS already
+-- ask_ai_readonly. INVOKER + a wrapping LIMIT subquery gives the same
+-- containment as DEFINER ownership-transfer would, and it sidesteps the
+-- "must be able to SET ROLE" permission requirement on managed Postgres
+-- (Supabase, RDS, etc.) where the SQL editor user is not a superuser and
+-- doesn't hold ADMIN OPTION on ask_ai_readonly.
 
 CREATE OR REPLACE FUNCTION public.ask_query(sql_text text)
 RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = public
 AS $$
 DECLARE
@@ -34,6 +30,5 @@ BEGIN
 END;
 $$;
 
-ALTER FUNCTION public.ask_query(text) OWNER TO ask_ai_readonly;
 REVOKE ALL ON FUNCTION public.ask_query(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.ask_query(text) TO ask_ai_readonly;
