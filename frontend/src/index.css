@@ -17,10 +17,10 @@
   --border-light: rgba(255, 255, 255, 0.04);
 
   /* Text */
-  --text-primary:   #e9eef5;
-  --text-secondary: #536b87;
-  --text-muted:     #2d3e52;
-  --text-dim:       #3a5270;
+  --text-primary:   #ffffff;
+  --text-secondary: #b0cce0;
+  --text-muted:     #8aaec8;
+  --text-dim:       #7a9ab5;
 
   /* Brand accents */
   --gold:        #f0b429;
@@ -73,10 +73,10 @@
   --border-gold:  rgba(240, 180, 41, 0.5);
   --border-light: rgba(0, 0, 0, 0.05);
 
-  --text-primary:   #0f1923;
-  --text-secondary: #4b6280;
-  --text-muted:     #8499b0;
-  --text-dim:       #aab8c8;
+  --text-primary:   #000000;
+  --text-secondary: #000000;
+  --text-muted:     #000000;
+  --text-dim:       #000000;
 
   --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.14);
@@ -372,10 +372,10 @@ body::before {
   padding: 9px 10px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   border-radius: var(--r-sm);
   transition: all 0.18s ease;

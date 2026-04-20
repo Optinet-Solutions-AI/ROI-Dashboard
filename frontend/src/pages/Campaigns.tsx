@@ -1,8 +1,11 @@
 import React from 'react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useChartColors } from '../lib/theme';
 
 export const Campaigns: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
+  const { axisColor, axisStroke, tooltipStyle } = useChartColors();
+
   const campMap: Record<string, any> = {};
   data.forEach(d => {
     const camp = d.campaign || d.brand;
@@ -32,9 +35,9 @@ export const Campaigns: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => 
         {campData.length > 0 ? (
           <ResponsiveContainer width="100%" height="90%">
             <BarChart data={campData} margin={{ top: 20 }}>
-              <XAxis dataKey="campaign" stroke="#2d3e52" tick={{ fontSize: 11, fill: '#536b87' }} />
-              <YAxis stroke="#2d3e52" tick={{ fontSize: 11, fill: '#536b87' }} tickFormatter={(val) => formatter.format(val)} />
-              <Tooltip formatter={(value) => formatter.format(Number(value))} contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#111827', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }} />
+              <XAxis dataKey="campaign" stroke={axisStroke} tick={{ fontSize: 11, fill: axisColor }} />
+              <YAxis stroke={axisStroke} tick={{ fontSize: 11, fill: axisColor }} tickFormatter={(val) => formatter.format(val)} />
+              <Tooltip formatter={(value) => formatter.format(Number(value))} contentStyle={tooltipStyle} />
               <Bar dataKey="roi" radius={[4, 4, 0, 0]}>
                 {campData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.roi >= 0 ? '#7c3aed' : '#ef4444'} />

@@ -386,7 +386,7 @@ export const Data: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
         >
           ← Prev
         </button>
-        <span style={{ color: '#ffffff', fontSize: '0.875rem' }}>
+        <span style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
           Page {safePage + 1} of {totalPages}
         </span>
         <button

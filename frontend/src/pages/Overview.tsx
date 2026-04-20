@@ -207,7 +207,7 @@ export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
               type="category"
               dataKey="label"
               stroke={axisStroke}
-              tick={{ fontSize: 11, fill: '#e9eef5' }}
+              tick={{ fontSize: 11, fill: axisColor }}
               width={160}
               tickLine={false}
             />

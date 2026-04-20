@@ -36,7 +36,7 @@ export const useChartColors = () => {
   const isDark = theme === 'dark';
   return {
     isDark,
-    axisColor:  isDark ? '#536b87' : '#64748b',
+    axisColor:  isDark ? '#b0cce0' : '#000000',
     axisStroke: isDark ? '#1e293b' : '#e2e8f0',
     gridStroke: isDark ? '#1e293b' : '#e2e8f0',
     tooltipStyle: isDark
