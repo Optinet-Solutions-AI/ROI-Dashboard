@@ -1,0 +1,14 @@
+-- 20260420_03_ask_query_function.sql  (SUPERSEDED — do not apply)
+--
+-- Originally created a public.ask_query() plpgsql wrapper as Layer 3 of the
+-- SQL safety stack. Removed because Supabase SQL Editor mis-parses dollar-
+-- quoted plpgsql bodies containing EXECUTE … INTO, and the layer is redundant:
+--
+--   Layer 1  node-sql-parser validates + injects LIMIT 500 (api/_lib/safety/sqlValidator.ts)
+--   Layer 2  ask_ai_readonly role: SELECT only on performance_records,
+--            statement_timeout = 5 s, no write or DDL capability
+--
+-- run_safe_sql.ts now calls readOnlyQuery(v.sql) directly through the
+-- ask_ai_readonly connection pool.  Safety guarantees are unchanged.
+--
+-- This file is kept for audit purposes.  You do NOT need to run it.
