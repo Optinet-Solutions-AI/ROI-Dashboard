@@ -9,6 +9,8 @@ import type { GlobalFilters, FilterOptions } from '../types/filters';
  *   - Within a dimension, values are OR'd (selectedBrands: ['SP','LV'] = SP or LV).
  *   - Across dimensions, filters are AND'd.
  *   - Date bounds are inclusive and lexicographic on 'YYYY-MM-DD' strings.
+ *   - problematicSource tri-state: 'yes' keeps only problematic_source===1;
+ *     'no' keeps everything else (including null/undefined/0); 'all' keeps all.
  */
 export function applyFilters(
   data: PerformanceRecord[],
@@ -29,8 +31,9 @@ export function applyFilters(
     if (f.problematicSource === 'yes' && r.problematic_source !== 1) return false;
     if (f.problematicSource === 'no'  && r.problematic_source === 1) return false;
 
-    if (f.dateFrom && (!r.date || r.date < f.dateFrom)) return false;
-    if (f.dateTo   && (!r.date || r.date > f.dateTo))   return false;
+    const rDate = (r.date ?? '').slice(0, 10);
+    if (f.dateFrom && (!rDate || rDate < f.dateFrom)) return false;
+    if (f.dateTo   && (!rDate || rDate > f.dateTo))   return false;
 
     if (search) {
       const hay = [
