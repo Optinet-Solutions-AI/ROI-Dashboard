@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Search, X, Download, Filter, ChevronsUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, X, Download, Filter, ChevronsUpDown, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Users, MousePointerClick, DollarSign, BarChart2 } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid,
+  CartesianGrid, BarChart, Bar,
 } from 'recharts';
 import { ReferenceLine } from 'recharts';
 
@@ -68,7 +68,9 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo,   setDateTo]   = useState('');
-  const colVizRef = React.useRef<HTMLDivElement>(null);
+  const [selectedAffiliateId, setSelectedAffiliateId] = useState<string | null>(null);
+  const colVizRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle, isDark } = useChartColors();
 
   /* ── Close filter popover on outside click (parked — does not follow scroll) ── */
@@ -95,6 +97,18 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [colVizOpen]);
+
+  /* ── Close affiliate drawer on Escape or outside click ── */
+  useEffect(() => {
+    if (!selectedAffiliateId) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedAffiliateId(null); };
+    const onMouse = (e: MouseEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) setSelectedAffiliateId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onMouse);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onMouse); };
+  }, [selectedAffiliateId]);
 
   /* ── Reset to page 1 whenever column filters or sort changes ── */
   useEffect(() => { setPage(1); }, [colFilters, sortCol, sortDir]);
@@ -432,6 +446,34 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const formatter    = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   const pctFormatter = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
 
+  /* ── Selected affiliate detail data ── */
+  const selectedRow = selectedAffiliateId ? tableData.find(r => r.affiliate_id === selectedAffiliateId) : null;
+  const selectedRecords = selectedAffiliateId
+    ? dateFilteredData.filter(d => (d.affiliate_id || d.affiliate) === selectedAffiliateId)
+    : [];
+
+  const selectedMonthlyMap: Record<string, { revenue: number; cost: number; profit: number; clicks: number; ftds: number }> = {};
+  selectedRecords.forEach(d => {
+    if (!d.date) return;
+    const mk = String(d.date).slice(0, 7);
+    if (!selectedMonthlyMap[mk]) selectedMonthlyMap[mk] = { revenue: 0, cost: 0, profit: 0, clicks: 0, ftds: 0 };
+    const rev = Number(d.revenue) || 0;
+    const cst = Number(d.cost) || 0;
+    selectedMonthlyMap[mk].revenue += rev;
+    selectedMonthlyMap[mk].cost    += cst;
+    selectedMonthlyMap[mk].profit  += rev - cst;
+    selectedMonthlyMap[mk].clicks  += Number(d.clicks) || 0;
+    selectedMonthlyMap[mk].ftds    += Number(d.ftds) || 0;
+  });
+
+  const selectedLineData = Object.entries(selectedMonthlyMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mk, vals]) => {
+      let label = mk;
+      try { label = new Date(mk + '-02').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }); } catch {}
+      return { month: label, ...vals };
+    });
+
 
   const handleExport = () => {
     const rows = tableData.map(row => ({
@@ -768,7 +810,12 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           </thead>
           <tbody>
             {pageData.map((row, idx) => (
-              <tr key={idx}>
+              <tr
+                key={idx}
+                onClick={() => setSelectedAffiliateId(row.affiliate_id)}
+                style={{ cursor: 'pointer', transition: 'background 0.15s' }}
+                title={`View stats for ${row.affiliate_name || row.affiliate_id}`}
+              >
                 <td style={{ color: affiliateColorMap[row.affiliate_id] ?? 'var(--gold, #f0b429)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                   {String(pageStart + idx + 1).padStart(2, '0')}
                 </td>
@@ -821,6 +868,173 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           </div>
         )}
       </div>
+      {/* ── Affiliate Detail Drawer ── */}
+      {selectedAffiliateId && selectedRow && (
+        <>
+          {/* Backdrop */}
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 900,
+              background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+            }}
+          />
+          {/* Drawer panel */}
+          <div
+            ref={drawerRef}
+            style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 901,
+              width: 'min(520px, 100vw)',
+              background: 'var(--bg-card)',
+              borderLeft: '1px solid var(--border)',
+              boxShadow: '-8px 0 40px rgba(0,0,0,0.5)',
+              display: 'flex', flexDirection: 'column',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+              padding: '20px 24px 16px',
+              borderBottom: '1px solid var(--border)',
+              position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1,
+            }}>
+              <div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>
+                  Affiliate Detail
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {selectedRow.affiliate_name || selectedRow.affiliate_id}
+                </div>
+                {selectedRow.affiliate_name && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                    ID: {selectedRow.affiliate_id}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedAffiliateId(null)}
+                style={{
+                  background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                  cursor: 'pointer', color: 'var(--text-muted)', padding: '6px 8px',
+                  display: 'flex', alignItems: 'center',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* KPI Cards */}
+            <div style={{ padding: '20px 24px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Clicks',   value: selectedRow.clicks.toLocaleString(),     icon: <MousePointerClick size={14} />, color: '#00d4ff' },
+                { label: 'FTDs',     value: selectedRow.ftds.toLocaleString(),        icon: <Users size={14} />,            color: '#f0b429' },
+                { label: 'Revenue',  value: formatter.format(selectedRow.revenue),    icon: <DollarSign size={14} />,       color: '#10b981' },
+                { label: 'Cost',     value: formatter.format(selectedRow.cost),       icon: <DollarSign size={14} />,       color: '#ec4899' },
+                { label: 'Profit',   value: formatter.format(selectedRow.profit),     icon: selectedRow.profit >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />, color: selectedRow.profit >= 0 ? 'var(--green)' : 'var(--red)' },
+                { label: 'ROI',      value: pctFormatter.format(selectedRow.roi),     icon: <BarChart2 size={14} />,        color: selectedRow.roi >= 0 ? 'var(--green)' : 'var(--red)' },
+              ].map(({ label, value, icon, color }) => (
+                <div key={label} style={{
+                  background: 'var(--bg-page, var(--bg-input))',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '12px 14px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+                    <span style={{ color }}>{icon}</span>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color }}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* CPA card full-width */}
+            <div style={{ padding: '10px 24px 0' }}>
+              <div style={{
+                background: 'var(--bg-page, var(--bg-input))',
+                border: '1px solid var(--border)',
+                borderRadius: 10, padding: '12px 14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  CPA (Cost per FTD)
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {formatter.format(selectedRow.cpa)}
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Trend Chart */}
+            {selectedLineData.length > 0 && (
+              <div style={{ padding: '20px 24px 0' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
+                  Monthly Profit Trend
+                </div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={selectedLineData} margin={{ top: 4, right: 8, bottom: 4, left: 4 }}>
+                    <CartesianGrid stroke={gridStroke} strokeDasharray="4 4" opacity={0.4} vertical={false} />
+                    <XAxis dataKey="month" stroke={axisStroke} tick={{ fontSize: 10, fill: axisColor }} tickLine={false} />
+                    <YAxis
+                      stroke={axisStroke}
+                      tick={{ fontSize: 10, fill: axisColor }}
+                      tickFormatter={v => v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${v}`}
+                      width={52} tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(val: any, name: string) => [formatter.format(Number(val ?? 0)), name.charAt(0).toUpperCase() + name.slice(1)]}
+                    />
+                    <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="4 3" strokeWidth={1} />
+                    <Bar dataKey="profit" fill="#00d4ff" radius={[4,4,0,0]} maxBarSize={36}
+                      label={false}
+                      // color each bar green/red based on value
+                      isAnimationActive={true}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Monthly breakdown table */}
+            {selectedLineData.length > 0 && (
+              <div style={{ padding: '16px 24px 24px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                  Monthly Breakdown
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        {['Month','Clicks','FTDs','Revenue','Cost','Profit'].map(h => (
+                          <th key={h} style={{ textAlign: h === 'Month' ? 'left' : 'right', padding: '6px 8px', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedLineData.map((row, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid var(--border)', opacity: 0.9 }}>
+                          <td style={{ padding: '7px 8px', color: 'var(--text-primary)', fontWeight: 500 }}>{row.month}</td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', color: 'var(--text-primary)' }}>{(row.clicks as number).toLocaleString()}</td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', color: 'var(--text-primary)' }}>{(row.ftds as number).toLocaleString()}</td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', color: 'var(--text-primary)' }}>{formatter.format(row.revenue as number)}</td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', color: 'var(--text-primary)' }}>{formatter.format(row.cost as number)}</td>
+                          <td style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 600, color: (row.profit as number) >= 0 ? 'var(--green)' : 'var(--red)' }}>{formatter.format(row.profit as number)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {selectedLineData.length === 0 && (
+              <div style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No monthly data available for this affiliate.
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
