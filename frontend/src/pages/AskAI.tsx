@@ -4,6 +4,29 @@ import { AskInput } from '../components/AskAI/AskInput';
 import { AssistantMessage } from '../components/AskAI/AssistantMessage';
 import { ErrorBanner } from '../components/AskAI/ErrorBanner';
 import { StatusLine } from '../components/AskAI/StatusLine';
+import type { Message, ErrorCode } from '../types/askAi';
+
+type Turn = {
+  question: string;
+  answer?: { text: string };
+  error?:  { code: ErrorCode; message: string };
+};
+
+// Walk the flat message list and group each user message with the
+// assistant/error message that immediately follows it.
+function pairTurns(thread: Message[]): Turn[] {
+  const turns: Turn[] = [];
+  for (const m of thread) {
+    if (m.role === 'user') {
+      turns.push({ question: m.text });
+    } else if (m.role === 'assistant' && turns.length) {
+      turns[turns.length - 1].answer = { text: m.text };
+    } else if (m.role === 'assistant_error' && turns.length) {
+      turns[turns.length - 1].error = { code: m.code, message: m.message };
+    }
+  }
+  return turns;
+}
 
 const SESSION_KEY = 'roi_dashboard_ask_session_id';
 
@@ -57,35 +80,35 @@ export function AskAI() {
         )}
       </div>
 
-      {/* Results — cards below the search bar */}
+      {/* Results — newest on top, just below the search bar */}
       {hasThread && (
         <div className="ask-results">
-          {state.thread.map((m, i) => {
-            if (m.role === 'user') return (
-              <div key={i} className="ask-card">
-                <div className="ask-card__question">{m.text}</div>
-              </div>
-            );
-            if (m.role === 'assistant') return (
-              <div key={i} className="ask-card ask-card--answer">
-                <AssistantMessage text={m.text} />
-              </div>
-            );
-            if (m.role === 'assistant_error') return (
-              <div key={i} className="ask-card ask-card--error">
-                <ErrorBanner code={m.code} message={m.message} />
-              </div>
-            );
-            return null;
-          })}
-
-          {/* In-flight streaming card */}
+          {/* In-flight streaming card pins to the very top */}
           {(state.liveStatus || state.liveAnswer) && (
             <div className="ask-card ask-card--answer ask-card--live">
               {state.liveStatus && <StatusLine message={state.liveStatus} />}
               {state.liveAnswer && <AssistantMessage text={state.liveAnswer} />}
             </div>
           )}
+
+          {/* Group user+assistant pairs and render newest first */}
+          {pairTurns(state.thread).reverse().map((turn, i) => (
+            <div key={i} className="ask-turn">
+              <div className="ask-card">
+                <div className="ask-card__question">{turn.question}</div>
+              </div>
+              {turn.answer && (
+                <div className="ask-card ask-card--answer">
+                  <AssistantMessage text={turn.answer.text} />
+                </div>
+              )}
+              {turn.error && (
+                <div className="ask-card ask-card--error">
+                  <ErrorBanner code={turn.error.code} message={turn.error.message} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
