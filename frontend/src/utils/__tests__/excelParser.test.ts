@@ -38,4 +38,12 @@ describe('deriveFtdMonth', () => {
   it('accepts ISO timestamps and truncates to month', () => {
     expect(deriveFtdMonth('2026-03-01T00:00:00Z')).toBe('2026-03');
   });
+
+  it('returns undefined for Excel numeric serial dates (raw: true workbooks)', () => {
+    expect(deriveFtdMonth(46081)).toBeUndefined();
+  });
+
+  it('returns undefined for Date objects (parser must stringify upstream)', () => {
+    expect(deriveFtdMonth(new Date('2026-03-15'))).toBeUndefined();
+  });
 });
