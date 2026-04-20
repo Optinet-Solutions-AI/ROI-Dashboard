@@ -125,6 +125,7 @@ export const Deleted: React.FC<DeletedProps> = ({ data, clearedAt }) => {
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: 40 }}>#</th>
               {columns.map(col => (
                 <th key={col} style={{ whiteSpace: 'nowrap' }}>{formatHeader(col)}</th>
               ))}
@@ -136,6 +137,9 @@ export const Deleted: React.FC<DeletedProps> = ({ data, clearedAt }) => {
                 key={start + idx}
                 style={idx % 2 !== 0 ? { backgroundColor: 'rgba(255,255,255,0.03)' } : undefined}
               >
+                <td style={{ color: 'var(--gold, #f0b429)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', width: 40 }}>
+                  {String(start + idx + 1).padStart(2, '0')}
+                </td>
                 {columns.map(col => (
                   <td key={col} style={{ whiteSpace: 'nowrap' }}>
                     {row[col] != null ? String(row[col]) : '—'}

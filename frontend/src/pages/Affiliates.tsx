@@ -413,6 +413,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
 
   /* ── Top 6 affiliates monthly profit line chart (always profit-desc, respects search/date filter) ── */
   const top6Ids = [...filteredData].sort((a, b) => b.profit - a.profit).slice(0, 6).map(a => a.affiliate_id);
+  const affiliateColorMap: Record<string, string> = Object.fromEntries(top6Ids.map((id, i) => [id, LINE_COLORS[i % LINE_COLORS.length]]));
 
   const monthlyMap: Record<string, Record<string, number>> = {};
   dateFilteredData.forEach(d => {
@@ -774,7 +775,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <tbody>
             {pageData.map((row, idx) => (
               <tr key={idx}>
-                <td style={{ color: axisColor, fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                <td style={{ color: affiliateColorMap[row.affiliate_id] ?? 'var(--gold, #f0b429)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                   {String(pageStart + idx + 1).padStart(2, '0')}
                 </td>
                 {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
