@@ -101,7 +101,11 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
       try {
         const data = e.target?.result as ArrayBuffer;
         // type:'array' + Uint8Array is significantly faster than readAsBinaryString / type:'binary'
-        const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+        const workbook = XLSX.read(new Uint8Array(data), {
+          type: 'array',
+          cellDates: true,
+          dateNF: 'yyyy-mm-dd',
+        });
 
         const allData: any[] = [];
 
@@ -109,7 +113,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
           const sheet = workbook.Sheets[sheetName];
 
           // First pass: get raw rows to detect header offset
-          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
           const headerRowIdx = findHeaderRowIndex(rawRows);
 
           let jsonRows: Record<string, any>[];
@@ -127,7 +131,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               return obj;
             }).filter(Boolean) as Record<string, any>[];
           } else {
-            jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'yyyy-mm-dd' }) as Record<string, any>[];
+            jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: false }) as Record<string, any>[];
           }
 
           for (const row of jsonRows) {
