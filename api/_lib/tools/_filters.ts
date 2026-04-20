@@ -1,12 +1,16 @@
 import type { Dim, Filters } from '../types.js';
 
 export const ALLOWED_DIMS: Set<Dim> = new Set([
-  'affiliate_id','affiliate_name','country','campaign','brand','am','source',
+  'affiliate_id','affiliate_name','company_name',
+  'country','player_country','campaign',
+  'brand','am','source','problematic_source',
 ]);
 
 const ALLOWED_FILTER_KEYS = new Set<keyof Filters>([
-  'affiliate_id','affiliate_name','country','campaign','brand','am','source','period',
-  'date_from','date_to',
+  'affiliate_id','affiliate_name','company_name',
+  'country','player_country','campaign',
+  'brand','am','source','problematic_source',
+  'period','ftd_month','date_from','date_to',
 ]);
 
 export function buildWhereClause(filters: Filters): { whereSql: string; params: unknown[] } {

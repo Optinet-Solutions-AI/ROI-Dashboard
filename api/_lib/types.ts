@@ -3,8 +3,10 @@
 // Keep this file dependency-free.
 
 export type Dim =
-  | 'affiliate_id' | 'affiliate_name' | 'country' | 'campaign'
-  | 'brand'        | 'am'             | 'source';
+  | 'affiliate_id' | 'affiliate_name' | 'company_name'
+  | 'country'      | 'player_country' | 'campaign'
+  | 'brand'        | 'am'             | 'source'
+  | 'problematic_source';
 
 export type Metric =
   | 'revenue' | 'cost' | 'profit' | 'roi' | 'ftds' | 'clicks'
@@ -12,16 +14,20 @@ export type Metric =
   | 'casino_real_ngr' | 'sb_real_ngr' | 'flats_and_adjustments';
 
 export type Filters = {
-  affiliate_id?:   string | string[];
-  affiliate_name?: string | string[];
-  country?:        string | string[];
-  campaign?:       string | string[];
-  brand?:          string | string[];
-  am?:             string | string[];
-  source?:         string | string[];
-  period?:         string | string[];
-  date_from?:      string;   // 'YYYY-MM-DD'
-  date_to?:        string;   // 'YYYY-MM-DD'
+  affiliate_id?:        string | string[];
+  affiliate_name?:      string | string[];
+  company_name?:        string | string[];
+  country?:             string | string[];
+  player_country?:      string | string[];
+  campaign?:            string | string[];
+  brand?:               string | string[];
+  am?:                  string | string[];
+  source?:              string | string[];
+  problematic_source?:  string | string[];
+  period?:              string | string[];
+  ftd_month?:           string | string[];
+  date_from?:           string;   // 'YYYY-MM-DD'
+  date_to?:             string;   // 'YYYY-MM-DD'
 };
 
 export type ErrorCode =
