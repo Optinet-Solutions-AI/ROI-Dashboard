@@ -19,19 +19,25 @@ describe('checkRateLimit', () => {
   it('blocks when session count is exactly at the limit', async () => {
     const result = await checkRateLimit(fakeSupabase(SESSION_LIMIT, 100), 'session-x');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('session');
+    if (!result.allowed) {
+      expect(result.reason).toBe('session');
+    }
   });
 
   it('blocks when global count is exactly at the limit', async () => {
     const result = await checkRateLimit(fakeSupabase(5, GLOBAL_LIMIT), 'session-x');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('global');
+    if (!result.allowed) {
+      expect(result.reason).toBe('global');
+    }
   });
 
   it('blocks when both are at limit (reports session first)', async () => {
     const result = await checkRateLimit(fakeSupabase(SESSION_LIMIT, GLOBAL_LIMIT), 'session-x');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('session');
+    if (!result.allowed) {
+      expect(result.reason).toBe('session');
+    }
   });
 
   it('returns the cooldown timestamp when blocked', async () => {
@@ -48,6 +54,8 @@ describe('checkRateLimit', () => {
     } as any;
     const result = await checkRateLimit(broken, 'session-x');
     expect(result.allowed).toBe(false);
-    expect(result.reason).toBe('error');
+    if (!result.allowed) {
+      expect(result.reason).toBe('error');
+    }
   });
 });
