@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2 } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
@@ -9,6 +9,7 @@ import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
 import { Deleted } from './pages/Deleted';
+import { AskAI } from './pages/AskAI';
 import { fetchRecords, replaceRecords, clearRecords } from './lib/db';
 
 // ── IndexedDB persistence (no size limit — localStorage tops out at ~5 MB) ──
@@ -76,6 +77,7 @@ async function clearIDB(): Promise<void> {
 
 const TABS = [
   { id: 'Overview',   label: 'Overview',   Icon: LayoutDashboard },
+  { id: 'AskAI',      label: 'Ask AI',     Icon: Sparkles        },
   { id: 'Affiliates', label: 'Affiliates',  Icon: Users           },
   { id: 'Campaigns',  label: 'Campaigns',   Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',    Icon: Lightbulb       },
@@ -240,7 +242,11 @@ function App() {
           </div>
         )}
 
-        {!loading && data.length === 0 && activeTab !== 'Deleted' && (
+        {!loading && activeTab === 'AskAI' && (
+          <div className="fade-in"><AskAI /></div>
+        )}
+
+        {!loading && data.length === 0 && activeTab !== 'Deleted' && activeTab !== 'AskAI' && (
           <div className="empty-state">
             <div className="empty-state__icon">
               <BarChart3 size={34} />
@@ -259,7 +265,7 @@ function App() {
           </div>
         )}
 
-        {!loading && data.length > 0 && activeTab !== 'Deleted' && (
+        {!loading && data.length > 0 && activeTab !== 'Deleted' && activeTab !== 'AskAI' && (
           <div className="fade-in">
             {activeTab === 'Overview'   && <Overview   data={data} />}
             {activeTab === 'Affiliates' && <Affiliates data={data} />}
