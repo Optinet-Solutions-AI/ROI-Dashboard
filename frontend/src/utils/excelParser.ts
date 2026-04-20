@@ -1,21 +1,36 @@
 import * as XLSX from 'xlsx';
 
+// Map Excel header variants to canonical DB column names.
+// Keep `company_name` and `player_country` as separate fields — the ROI
+// workbook uses them as distinct pivot dimensions and collapsing them
+// into affiliate_name / country loses filter granularity.
 const COLUMN_ALIASES: Record<string, string> = {
-  partner_id:    'affiliate_id',
-  partner_name:  'affiliate_name',
-  affiliate:     'affiliate_id',
-  player_country: 'country',
-  campaign_name: 'campaign',
-  stats_date:    'date',
-  ftd_month:     'date',      // ROI export: "FTD month" → date
-  ftd_count:     'ftds',
-  ftd:           'ftds',      // ROI export: "FTD" → ftds
-  deposits_sum:  'revenue',
-  partner_income: 'cost',
-  company_name:  'affiliate_name',
-  fd_date:       'date',
-  flat_amt:      'flats_and_adjustments',
+  partner_id:                'affiliate_id',
+  partner_name:              'affiliate_name',
+  affiliate:                 'affiliate_id',
+  company_name_f:            'company_name',
+  campaign_name:             'campaign',
+  stats_date:                'date',
+  fd_date:                   'date',
+  ftd_count:                 'ftds',
+  ftd:                       'ftds',
+  deposits_sum:              'revenue',
+  partner_income:            'cost',
+  flat_amt:                  'flats_and_adjustments',
   flats_and_adjustments_col: 'flats_and_adjustments',
+};
+
+/**
+ * Extract YYYY-MM from a date-ish string. Returns undefined if the input
+ * can't be parsed as a date — the Excel workbook uses "FTD month" as a
+ * row grouping of FD_Date, so populating this lets us filter/group by
+ * month without re-parsing dates on every render.
+ */
+export const deriveFtdMonth = (value: unknown): string | undefined => {
+  if (value == null || value === '') return undefined;
+  const str = String(value).trim();
+  const match = /^(\d{4})-(\d{2})/.exec(str);
+  return match ? `${match[1]}-${match[2]}` : undefined;
 };
 
 export const normalizeColumnName = (name: string): string => {
@@ -123,6 +138,19 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               const normKey   = normalizeColumnName(key);
               const aliasedKey = COLUMN_ALIASES[normKey] ?? normKey;
               newRow[aliasedKey] = parseNumericValue(row[key]);
+            }
+
+            // Derive ftd_month from the canonical date column so it is available
+            // as a filter/grouping dimension without re-parsing at render time.
+            if (newRow.date && !newRow.ftd_month) {
+              const month = deriveFtdMonth(newRow.date);
+              if (month) newRow.ftd_month = month;
+            }
+
+            // problematic_source in the workbook is 0/1 — make sure it's numeric.
+            if (newRow.problematic_source != null && typeof newRow.problematic_source !== 'number') {
+              const n = Number(newRow.problematic_source);
+              newRow.problematic_source = Number.isFinite(n) ? n : undefined;
             }
 
             // Skip entirely blank rows
