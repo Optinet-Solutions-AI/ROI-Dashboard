@@ -63,6 +63,9 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() => new Set(ALL_COLS.map(c => c.key)));
   const [colVizOpen, setColVizOpen]   = useState(false);
   const [focusedAffiliate, setFocusedAffiliate] = useState<string | null>(null);
+  const [sortState, setSortState] = useState<{ col: string | null; dir: 'asc' | 'desc' | null }>({ col: null, dir: null });
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo,   setDateTo]   = useState('');
   const colVizRef = React.useRef<HTMLDivElement>(null);
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
@@ -91,12 +94,29 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     return () => document.removeEventListener('mousedown', handler);
   }, [colVizOpen]);
 
-  /* ── Reset to page 1 whenever column filters change ── */
-  useEffect(() => { setPage(1); }, [colFilters]);
+  /* ── Reset to page 1 whenever column filters or sort changes ── */
+  useEffect(() => { setPage(1); }, [colFilters, sortState]);
+
+  /* ── Date range filter ── */
+  const allMonths = Array.from(new Set(
+    data.filter(d => d.date).map(d => String(d.date).slice(0, 7))
+  )).sort();
+  const minMonth = allMonths[0] || '';
+  const maxMonth = allMonths[allMonths.length - 1] || '';
+
+  const dateFilteredData = (dateFrom || dateTo)
+    ? data.filter(d => {
+        const m = d.date ? String(d.date).slice(0, 7) : '';
+        if (!m) return true;
+        if (dateFrom && m < dateFrom) return false;
+        if (dateTo   && m > dateTo)   return false;
+        return true;
+      })
+    : data;
 
   /* ── Aggregate per-affiliate totals ── */
   const affMap: Record<string, any> = {};
-  data.forEach(d => {
+  dateFilteredData.forEach(d => {
     if (!d.affiliate_id && !d.affiliate) return;
     const aff = d.affiliate_id || d.affiliate;
     if (!affMap[aff]) affMap[aff] = { affiliate_id: aff, affiliate_name: d.affiliate_name ?? '', clicks: 0, ftds: 0, revenue: 0, cost: 0, profit: 0 };
@@ -156,10 +176,29 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     return result;
   })();
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+  const handleSort = (col: string) => {
+    setSortState(prev => {
+      if (prev.col !== col) return { col, dir: 'asc' };
+      if (prev.dir === 'asc') return { col, dir: 'desc' };
+      return { col: null, dir: null };
+    });
+  };
+
+  const sortedData = (() => {
+    if (!sortState.col || !sortState.dir) return filteredData;
+    const col = sortState.col;
+    return [...filteredData].sort((a, b) => {
+      const av = a[col] ?? 0;
+      const bv = b[col] ?? 0;
+      if (typeof av === 'string') return sortState.dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      return sortState.dir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av);
+    });
+  })();
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / PAGE_SIZE));
   const safePage   = Math.min(page, totalPages);
   const pageStart  = (safePage - 1) * PAGE_SIZE;
-  const pageData   = filteredData.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageData   = sortedData.slice(pageStart, pageStart + PAGE_SIZE);
 
   /* ── Column filter helpers ── */
   const isColActive = (col: string): boolean => {
@@ -201,11 +240,20 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
     const active = isColActive(col);
     const isOpen = openFilterCol === col;
     const isText = TEXT_COLS.includes(col as TextColKey);
+    const sortDir = sortState.col === col ? sortState.dir : null;
 
     return (
       <th style={{ position: 'relative', whiteSpace: 'nowrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: align === 'right' ? 'flex-end' : 'flex-start', gap: 4 }}>
-          {label}
+          <span
+            onClick={() => handleSort(col)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, userSelect: 'none' }}
+          >
+            {label}
+            <span style={{ fontSize: '0.65rem', color: sortDir ? 'var(--accent, #00d4ff)' : 'var(--text-muted)', opacity: sortDir ? 1 : 0.4, lineHeight: 1 }}>
+              {sortDir === 'asc' ? '↑' : sortDir === 'desc' ? '↓' : '↕'}
+            </span>
+          </span>
           <button
             data-col-filter-btn=""
             onClick={e => { e.stopPropagation(); setOpenFilterCol(prev => prev === col ? null : col); }}
@@ -314,10 +362,10 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
   };
 
   /* ── Top 6 affiliates monthly profit line chart ── */
-  const top6Ids = tableData.slice(0, 6).map(a => a.affiliate_id);
+  const top6Ids = filteredData.slice(0, 6).map(a => a.affiliate_id);
 
   const monthlyMap: Record<string, Record<string, number>> = {};
-  data.forEach(d => {
+  dateFilteredData.forEach(d => {
     const aff = d.affiliate_id || d.affiliate;
     if (!aff || !d.date || !top6Ids.includes(aff)) return;
     const raw = String(d.date);
@@ -374,57 +422,6 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           <p>Detailed Affiliate Performance</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* Column visibility toggle */}
-          <div ref={colVizRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setColVizOpen(v => !v)}
-              title="Show / hide columns"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-                borderRadius: 8, border: `1px solid ${colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--border)'}`,
-                backgroundColor: 'var(--bg-card)', color: colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
-                fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
-              }}
-            >
-              <ChevronsUpDown size={14} />
-              Columns
-            </button>
-
-            {colVizOpen && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 400,
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-                borderRadius: 10, padding: '10px 14px', minWidth: 200,
-                boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
-              }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
-                  Visible Columns
-                </div>
-                {ALL_COLS.map(({ key, label }) => (
-                  <label
-                    key={key}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 0', fontSize: '0.82rem', color: 'var(--text-primary)', userSelect: 'none' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.has(key)}
-                      onChange={() => {
-                        setVisibleCols(prev => {
-                          const next = new Set(prev);
-                          if (next.has(key)) { if (next.size > 1) next.delete(key); }
-                          else next.add(key);
-                          return next;
-                        });
-                      }}
-                      style={{ accentColor: 'var(--accent, #00d4ff)', width: 14, height: 14, cursor: 'pointer' }}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
           <button
             onClick={handleExport}
             style={{
@@ -442,7 +439,49 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
 
       {/* ── Net Profit by Affiliate (line chart) ── */}
       <div className="chart-card" style={{ marginBottom: 20, minHeight: lineData.length > 1 ? 360 : 'auto' }}>
-        <div className="chart-title">Net Profit by Affiliate — Top 6</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 4 }}>
+          <div className="chart-title" style={{ margin: 0 }}>Net Profit by Affiliate — Top 6</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input
+              type="month"
+              value={dateFrom}
+              min={minMonth}
+              max={dateTo || maxMonth}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{
+                padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)',
+                background: 'var(--bg-input)', color: '#fff', colorScheme: 'dark',
+                fontSize: '0.78rem', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer',
+              }}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>–</span>
+            <input
+              type="month"
+              value={dateTo}
+              min={dateFrom || minMonth}
+              max={maxMonth}
+              onChange={e => setDateTo(e.target.value)}
+              style={{
+                padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)',
+                background: 'var(--bg-input)', color: '#fff', colorScheme: 'dark',
+                fontSize: '0.78rem', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer',
+              }}
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                title="Clear date filter"
+                style={{
+                  display: 'flex', alignItems: 'center', padding: '5px 8px', borderRadius: 6,
+                  border: '1px solid var(--border)', background: 'none',
+                  color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem',
+                }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        </div>
 
         {lineData.length > 1 ? (
           <>
@@ -547,8 +586,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         )}
       </div>
 
-      {/* ── Search bar + clear column filters ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+      {/* ── Search bar + column visibility + clear column filters ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
           <Search
             size={15}
@@ -586,30 +625,83 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           )}
         </div>
 
-        {anyColActive && (
-          <button
-            onClick={() => setColFilters(DEFAULT_COL_FILTERS)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '6px 12px', borderRadius: 8,
-              border: '1px solid var(--gold, #f0b429)',
-              background: 'none', color: 'var(--gold, #f0b429)',
-              fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
-            }}
-          >
-            <X size={12} /> Clear column filters
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Column visibility toggle */}
+          <div ref={colVizRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setColVizOpen(v => !v)}
+              title="Show / hide columns"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                borderRadius: 8, border: `1px solid ${colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--border)'}`,
+                backgroundColor: 'var(--bg-card)', color: colVizOpen ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
+                fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
+            >
+              <ChevronsUpDown size={14} />
+              Columns
+            </button>
 
-        {(searchTerm || anyColActive) && (
-          <span style={{ fontSize: '0.8rem', color: axisColor }}>
-            {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
-          </span>
-        )}
+            {colVizOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 400,
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 10, padding: '10px 14px', minWidth: 200,
+                boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+              }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                  Visible Columns
+                </div>
+                {ALL_COLS.map(({ key, label }) => (
+                  <label
+                    key={key}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 0', fontSize: '0.82rem', color: 'var(--text-primary)', userSelect: 'none' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleCols.has(key)}
+                      onChange={() => {
+                        setVisibleCols(prev => {
+                          const next = new Set(prev);
+                          if (next.has(key)) { if (next.size > 1) next.delete(key); }
+                          else next.add(key);
+                          return next;
+                        });
+                      }}
+                      style={{ accentColor: 'var(--accent, #00d4ff)', width: 14, height: 14, cursor: 'pointer' }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {anyColActive && (
+            <button
+              onClick={() => setColFilters(DEFAULT_COL_FILTERS)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '6px 12px', borderRadius: 8,
+                border: '1px solid var(--gold, #f0b429)',
+                background: 'none', color: 'var(--gold, #f0b429)',
+                fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
+            >
+              <X size={12} /> Clear column filters
+            </button>
+          )}
+
+          {(searchTerm || anyColActive) && (
+            <span style={{ fontSize: '0.8rem', color: axisColor }}>
+              {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ── Affiliate Table ── */}
-      <div className="data-table-container">
+      <div className="data-table-container" style={{ minHeight: 500 }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -633,13 +725,13 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                 </td>
                 {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
                 {visibleCols.has('affiliate_id')   && <td style={{ fontWeight: 500 }}>{row.affiliate_id}</td>}
-                {visibleCols.has('clicks')  && <td>{row.clicks.toLocaleString()}</td>}
-                {visibleCols.has('ftds')    && <td>{row.ftds.toLocaleString()}</td>}
-                {visibleCols.has('revenue') && <td>{formatter.format(row.revenue)}</td>}
-                {visibleCols.has('cost')    && <td>{formatter.format(row.cost)}</td>}
-                {visibleCols.has('profit')  && <td style={{ color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{formatter.format(row.profit)}</td>}
-                {visibleCols.has('roi')     && <td style={{ color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{pctFormatter.format(row.roi)}</td>}
-                {visibleCols.has('cpa')     && <td style={{ color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>}
+                {visibleCols.has('clicks')  && <td style={{ textAlign: 'right' }}>{row.clicks.toLocaleString()}</td>}
+                {visibleCols.has('ftds')    && <td style={{ textAlign: 'right' }}>{row.ftds.toLocaleString()}</td>}
+                {visibleCols.has('revenue') && <td style={{ textAlign: 'right' }}>{formatter.format(row.revenue)}</td>}
+                {visibleCols.has('cost')    && <td style={{ textAlign: 'right' }}>{formatter.format(row.cost)}</td>}
+                {visibleCols.has('profit')  && <td style={{ textAlign: 'right', color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{formatter.format(row.profit)}</td>}
+                {visibleCols.has('roi')     && <td style={{ textAlign: 'right', color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{pctFormatter.format(row.roi)}</td>}
+                {visibleCols.has('cpa')     && <td style={{ textAlign: 'right', color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>}
               </tr>
             ))}
             {filteredData.length === 0 && (
@@ -657,8 +749,8 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
         {totalPages > 1 && (
           <div className="pagination">
             <span className="pagination__info">
-              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredData.length)} of {filteredData.length} affiliates
-              {(searchTerm || anyColActive) && tableData.length !== filteredData.length && ` (filtered from ${tableData.length})`}
+              Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, sortedData.length)} of {sortedData.length} affiliates
+              {(searchTerm || anyColActive) && tableData.length !== sortedData.length && ` (filtered from ${tableData.length})`}
             </span>
             <div className="pagination__controls">
               <button className="pagination__btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>
