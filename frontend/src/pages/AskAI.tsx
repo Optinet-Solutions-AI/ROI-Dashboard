@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
 import { useAskStream } from '../hooks/useAskStream';
 import { AskInput } from '../components/AskAI/AskInput';
 import { AssistantMessage } from '../components/AskAI/AssistantMessage';
@@ -39,7 +38,6 @@ export function AskAI() {
     <div className="ask-page">
       {/* Header + search bar — always visible */}
       <div className="ask-hero">
-        <div className="ask-hero__icon"><Sparkles size={28} /></div>
         <h1 className="ask-hero__title">Ask AI</h1>
         <p className="ask-hero__subtitle">
           Ask anything about your affiliate performance data.
