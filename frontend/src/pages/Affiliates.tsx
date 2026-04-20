@@ -881,6 +881,7 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
           {/* Drawer panel */}
           <div
             ref={drawerRef}
+            className="scroll-hidden"
             style={{
               position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 901,
               width: 'min(520px, 100vw)',
