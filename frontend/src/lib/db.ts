@@ -5,8 +5,10 @@ const TABLE = 'performance_records'
 
 // All columns defined in supabase-setup.sql (keep in sync with that schema)
 const COLUMNS = [
-  'affiliate_id', 'affiliate_name', 'country', 'campaign',
-  'brand', 'am', 'source', 'period', 'date',
+  'affiliate_id', 'affiliate_name', 'company_name',
+  'country', 'player_country', 'campaign',
+  'brand', 'am', 'source', 'problematic_source',
+  'period', 'date', 'ftd_month',
   'clicks', 'registrations', 'ftds', 'revenue', 'cost',
   'casino_real_ngr', 'sb_real_ngr', 'flats_and_adjustments',
 ] as const
