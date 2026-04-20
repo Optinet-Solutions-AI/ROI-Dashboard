@@ -10,8 +10,34 @@ export const TOKEN_BUDGET   = 8_000;
 export const MAX_TOOL_BYTES = 10_240;
 export const HISTORY_TURNS  = 6;
 
-export const SYSTEM_PROMPT = `You are an analyst for an affiliate-marketing dashboard.
+function buildSystemPrompt(): string {
+  const now = new Date();
+  const pad  = (n: number) => String(n).padStart(2, '0');
+
+  const todayStr = now.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-indexed
+
+  const thisStart = `${y}-${pad(m + 1)}-01`;
+  const thisEnd   = new Date(y, m + 1, 0).toISOString().slice(0, 10);
+  const thisName  = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  const lastDate  = new Date(y, m - 1, 1);
+  const ly = lastDate.getFullYear();
+  const lm = lastDate.getMonth();
+  const lastStart = `${ly}-${pad(lm + 1)}-01`;
+  const lastEnd   = new Date(ly, lm + 1, 0).toISOString().slice(0, 10);
+  const lastName  = lastDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  return `You are an analyst for an affiliate-marketing dashboard.
 You have access to a single dataset: performance_records.
+
+Today's date : ${todayStr}
+This month   : ${thisName} (${thisStart} → ${thisEnd})
+Last month   : ${lastName} (${lastStart} → ${lastEnd})
 
 Schema:
   affiliate_id, affiliate_name, country, campaign, brand, am, source,
@@ -27,10 +53,12 @@ Business glossary:
 Rules:
 - Use the provided tools to get data. Never invent numbers.
 - Aggregate inside tools, not in your head.
+- When users say "this month", "last month", "this week", or "today", use the exact date ranges above.
 - If a question can't be answered with the available data, say so clearly.
 - NEVER mention tool names, SQL, column names, or internals to the user.
 - Format money as $X,XXX, percentages as XX.X%, dates as Mon DD YYYY.
 - Keep answers concise. Use markdown tables for >3 rows of comparisons.`;
+}
 
 export type AgentInput = {
   openai: OpenAI;
@@ -59,7 +87,7 @@ type AccumulatedToolCall = {
 
 export async function runAgent(input: AgentInput): Promise<AgentResult> {
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: buildSystemPrompt() },
   ];
   for (const turn of input.history.slice(-HISTORY_TURNS)) {
     messages.push({ role: turn.role, content: turn.text });

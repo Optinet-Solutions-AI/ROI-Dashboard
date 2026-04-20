@@ -1352,6 +1352,21 @@ body::before {
 .ask-card--error  { padding: 0; }
 .ask-card--live   { opacity: 0.9; }
 
+/* User question bubble — right-aligned */
+.ask-card--question {
+  align-self: flex-end;
+  max-width: 80%;
+  background: transparent;
+  border-color: var(--gold);
+  border-radius: 14px 14px 4px 14px;
+}
+.ask-card--question .ask-card__question {
+  border-bottom: none;
+  color: var(--gold);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 /* Group a question + its answer/error so they read as one unit */
 .ask-turn { display: flex; flex-direction: column; gap: 8px; }
 
@@ -1499,6 +1514,13 @@ body::before {
 [data-theme="light"] .ask-card__question {
   color: #000000;
   border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .ask-card--question {
+  background: transparent;
+  border-color: var(--gold);
+}
+[data-theme="light"] .ask-card--question .ask-card__question {
+  color: #92400e;
 }
 [data-theme="light"] .ask-card--answer p,
 [data-theme="light"] .ask-card--answer ul,

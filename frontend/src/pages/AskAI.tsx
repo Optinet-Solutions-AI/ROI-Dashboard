@@ -94,7 +94,7 @@ export function AskAI() {
           {/* Group user+assistant pairs and render newest first */}
           {pairTurns(state.thread).reverse().map((turn, i) => (
             <div key={i} className="ask-turn">
-              <div className="ask-card">
+              <div className="ask-card ask-card--question">
                 <div className="ask-card__question">{turn.question}</div>
               </div>
               {turn.answer && (
