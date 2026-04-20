@@ -1317,14 +1317,13 @@ body::before {
 .ask-page {
   display: flex; flex-direction: column;
   height: 100%; max-height: calc(100vh - 80px);
+  overflow-y: auto; gap: 0;
 }
-.ask-page--active { gap: 12px; }
 
-/* Hero (empty state) */
+/* Hero — always visible at top */
 .ask-hero {
-  flex: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 40px 24px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 40px 24px 28px;
   width: 100%; max-width: 740px; margin: 0 auto;
 }
 .ask-hero__icon {
@@ -1337,6 +1336,27 @@ body::before {
 .ask-hero__subtitle {
   margin: 0 0 12px; color: #64748b; font-size: 0.95rem; text-align: center;
 }
+
+/* Results (cards below hero) */
+.ask-results {
+  display: flex; flex-direction: column; gap: 12px;
+  width: 100%; max-width: 740px; margin: 0 auto;
+  padding: 0 24px 32px;
+}
+.ask-card {
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+  background: #0d1427;
+  overflow: hidden;
+}
+.ask-card__question {
+  padding: 14px 18px;
+  color: #e2e8f0; font-size: 0.95rem; font-weight: 500;
+  border-bottom: 1px solid #1e293b;
+}
+.ask-card--answer { padding: 14px 18px; }
+.ask-card--error  { padding: 0; }
+.ask-card--live   { opacity: 0.9; }
 
 /* Search bar */
 .ask-search-bar {
@@ -1397,16 +1417,6 @@ body::before {
 .ask-chip:hover {
   border-color: #0ea5e9; color: #e2e8f0;
   background: rgba(14,165,233,0.08);
-}
-
-/* Thread */
-.ask-thread {
-  flex: 1; overflow-y: auto;
-  background: #0d1427;
-  border: 1px solid #1e293b;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 12px;
 }
 
 .ask-msg {

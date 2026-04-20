@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAskStream } from '../hooks/useAskStream';
-import { MessageThread } from '../components/AskAI/MessageThread';
 import { AskInput } from '../components/AskAI/AskInput';
+import { AssistantMessage } from '../components/AskAI/AssistantMessage';
+import { ErrorBanner } from '../components/AskAI/ErrorBanner';
+import { StatusLine } from '../components/AskAI/StatusLine';
 
 const SESSION_KEY = 'roi_dashboard_ask_session_id';
 
@@ -34,15 +36,16 @@ export function AskAI() {
   if (!sessionId) return null;
 
   return (
-    <div className={`ask-page${hasThread ? ' ask-page--active' : ''}`}>
-      {!hasThread ? (
-        <div className="ask-hero">
-          <div className="ask-hero__icon"><Sparkles size={28} /></div>
-          <h1 className="ask-hero__title">Ask AI</h1>
-          <p className="ask-hero__subtitle">
-            Ask anything about your affiliate performance data.
-          </p>
-          <AskInput disabled={inFlight} onSubmit={ask} />
+    <div className="ask-page">
+      {/* Header + search bar — always visible */}
+      <div className="ask-hero">
+        <div className="ask-hero__icon"><Sparkles size={28} /></div>
+        <h1 className="ask-hero__title">Ask AI</h1>
+        <p className="ask-hero__subtitle">
+          Ask anything about your affiliate performance data.
+        </p>
+        <AskInput disabled={inFlight} onSubmit={ask} />
+        {!hasThread && (
           <div className="ask-suggestions">
             <span className="ask-suggestions__label">Try asking</span>
             <div className="ask-suggestions__chips">
@@ -53,16 +56,39 @@ export function AskAI() {
               ))}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Results — cards below the search bar */}
+      {hasThread && (
+        <div className="ask-results">
+          {state.thread.map((m, i) => {
+            if (m.role === 'user') return (
+              <div key={i} className="ask-card">
+                <div className="ask-card__question">{m.text}</div>
+              </div>
+            );
+            if (m.role === 'assistant') return (
+              <div key={i} className="ask-card ask-card--answer">
+                <AssistantMessage text={m.text} />
+              </div>
+            );
+            if (m.role === 'assistant_error') return (
+              <div key={i} className="ask-card ask-card--error">
+                <ErrorBanner code={m.code} message={m.message} />
+              </div>
+            );
+            return null;
+          })}
+
+          {/* In-flight streaming card */}
+          {(state.liveStatus || state.liveAnswer) && (
+            <div className="ask-card ask-card--answer ask-card--live">
+              {state.liveStatus && <StatusLine message={state.liveStatus} />}
+              {state.liveAnswer && <AssistantMessage text={state.liveAnswer} />}
+            </div>
+          )}
         </div>
-      ) : (
-        <>
-          <MessageThread
-            thread={state.thread}
-            liveStatus={state.liveStatus}
-            liveAnswer={state.liveAnswer}
-          />
-          <AskInput disabled={inFlight} onSubmit={ask} />
-        </>
       )}
     </div>
   );
