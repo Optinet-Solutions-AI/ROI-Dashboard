@@ -1,0 +1,110 @@
+.affiliate-header {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  font-family: var(--font-body);
+}
+
+.affiliate-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.affiliate-header__back:hover { background: rgba(0, 212, 255, 0.08); }
+
+.affiliate-header__top {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.affiliate-header__identity {
+  flex: 0 1 220px;
+}
+.affiliate-header__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.affiliate-header__id {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.affiliate-header__name {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.affiliate-header__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  flex: 1 1 auto;
+  padding-bottom: 4px;
+}
+.affiliate-header__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+.affiliate-header__fact-label {
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+.affiliate-header__fact-value { font-weight: 500; }
+
+.affiliate-header__mix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.affiliate-header__pills-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.affiliate-header__pills-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.affiliate-header__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(0, 212, 255, 0.10);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+}
+.affiliate-header__pill--alt {
+  background: rgba(129, 140, 248, 0.12);
+}
+.affiliate-header__pill-count {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,18 +1,21 @@
 export interface PerformanceRecord {
   affiliate_id?: string;
   affiliate_name?: string;
+  company_name?: string;
   country?: string;
+  player_country?: string;
   campaign?: string;
   date?: string;
+  ftd_month?: string;
   clicks?: number;
   registrations?: number;
   ftds?: number;
   revenue?: number;
   cost?: number;
-  // Filter support fields
   brand?: string;
   am?: string;
   source?: string;
+  problematic_source?: number;
   period?: string | number;
   casino_real_ngr?: number;
   sb_real_ngr?: number;

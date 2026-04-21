@@ -1,8 +1,11 @@
 import React from 'react';
 import { Trophy, AlertTriangle, Lightbulb } from 'lucide-react';
 import { type PerformanceRecord, getInsights } from '../utils/kpiEngine';
+import { NoMatchingRows } from '../components/NoMatchingRows';
 
 export const Insights: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
+  if (data.length === 0) return <NoMatchingRows entity="insights" />;
+
   const { top_affiliates, worst_affiliates, recommendations } = getInsights(data);
 
   return (

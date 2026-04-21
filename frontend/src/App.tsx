@@ -1,15 +1,25 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, LayoutDashboard, Users, Lightbulb, Table, Menu, Trash2, Sparkles } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles, CalendarDays, Globe, Tag, Link, Layers } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
 import { Overview } from './pages/Overview';
 import { Affiliates } from './pages/Affiliates';
+import { AffiliateProfile } from './pages/AffiliateProfile';
+import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
 import { Deleted } from './pages/Deleted';
 import { AskAI } from './pages/AskAI';
+import { ByMonth } from './pages/ByMonth';
+import { ByCountry } from './pages/ByCountry';
+import { ByBrand } from './pages/ByBrand';
+import { BySource } from './pages/BySource';
+import { Cohort } from './pages/Cohort';
 import { fetchRecords, replaceRecords, clearRecords } from './lib/db';
+import { FilterProvider, useFilters } from './contexts/FilterContext';
+import { FilterBar } from './components/FilterBar/FilterBar';
+import { applyFilters } from './utils/applyFilters';
 
 // ── IndexedDB persistence (no size limit — localStorage tops out at ~5 MB) ──
 const IDB_NAME    = 'roi-dashboard-db';
@@ -77,30 +87,45 @@ async function clearIDB(): Promise<void> {
 const TABS = [
   { id: 'Overview',   label: 'Overview',   Icon: LayoutDashboard },
   { id: 'AskAI',      label: 'Ask AI',     Icon: Sparkles        },
-  { id: 'Affiliates', label: 'Affiliates',  Icon: Users           },
-  { id: 'Insights',   label: 'Insights',    Icon: Lightbulb       },
-  { id: 'Data',       label: 'Data',        Icon: Table           },
-  { id: 'Deleted',    label: 'Deleted',     Icon: Trash2          },
+  { id: 'ByMonth',    label: 'By Month',   Icon: CalendarDays    },
+  { id: 'ByCountry',  label: 'By Country', Icon: Globe           },
+  { id: 'ByBrand',    label: 'By Brand',   Icon: Tag             },
+  { id: 'BySource',   label: 'By Source',  Icon: Link            },
+  { id: 'Cohort',     label: 'Cohort',     Icon: Layers          },
+  { id: 'Affiliates', label: 'Affiliates', Icon: Users           },
+  { id: 'Campaigns',  label: 'Campaigns',  Icon: Megaphone       },
+  { id: 'Insights',   label: 'Insights',   Icon: Lightbulb       },
+  { id: 'Data',       label: 'Data',       Icon: Table           },
+  { id: 'Deleted',    label: 'Deleted',    Icon: Trash2          },
 ];
 
 function App() {
+  return (
+    <FilterProvider>
+      <AppShell />
+    </FilterProvider>
+  );
+}
+
+function AppShell() {
   const [data, setData]               = useState<PerformanceRecord[]>([]);
   const [deletedData, setDeletedData] = useState<PerformanceRecord[]>([]);
   const [deletedAt, setDeletedAt]     = useState<Date | null>(null);
   const [activeTab, setActiveTab]     = useState('Overview');
-  const [loading, setLoading]         = useState(true); // true until IDB load completes
+  const [loading, setLoading]         = useState(true);
   const [isDraggingOver, setDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
-  // On mount: Supabase is source of truth. Fall back to IndexedDB cache only when offline.
+  const { filters } = useFilters();
+  const filteredData = useMemo(() => applyFilters(data, filters), [data, filters]);
+
   useEffect(() => {
     navigator.storage?.persist?.().catch(() => { /* not supported in all browsers */ });
-
     (async () => {
       try {
         const remote = await fetchRecords();
         setData(remote);
-        // Mirror to IDB so next load is instant and offline-capable
         saveToIDB(remote).catch(e => console.warn('IDB cache save failed:', e));
       } catch (err) {
         console.warn('Supabase fetch failed — falling back to local cache:', err);
@@ -118,8 +143,6 @@ function App() {
 
   const handleFileUpload = async (file: File) => {
     setLoading(true);
-
-    // Step 1: Parse the file — report errors clearly
     let parsedData: PerformanceRecord[];
     try {
       parsedData = await parseExcelFile(file);
@@ -129,8 +152,6 @@ function App() {
       setLoading(false);
       return;
     }
-
-    // Step 2: Sync to Supabase (source of truth) — fail loudly on error and abort the upload
     try {
       await replaceRecords(parsedData);
     } catch (err) {
@@ -142,8 +163,6 @@ function App() {
       setLoading(false);
       return;
     }
-
-    // Step 3: Swap in the new data and refresh the local cache
     setData(parsedData);
     try {
       await saveToIDB(parsedData);
@@ -161,7 +180,6 @@ function App() {
       alert('Failed to clear cloud data. Check your internet connection and try again.');
       return;
     }
-
     setDeletedData(data);
     setDeletedAt(new Date());
     setData([]);
@@ -186,12 +204,25 @@ function App() {
     handleFileUpload(file);
   };
 
-  const switchTab = (tab: string) => { setActiveTab(tab); setSidebarOpen(false); };
+  const openAffiliateProfile = (partnerId: string) => {
+    setSelectedPartnerId(partnerId);
+    setActiveTab('AffiliateProfile');
+    setSidebarOpen(false);
+  };
+
+  const closeAffiliateProfile = () => {
+    setSelectedPartnerId(null);
+    setActiveTab('Affiliates');
+  };
+
+  const switchTab = (tab: string) => {
+    if (tab !== 'AffiliateProfile') setSelectedPartnerId(null);
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
 
   return (
     <div className="app-root">
-
-      {/* ── Mobile Top Header ── */}
       <header className="mobile-header">
         <div className="mobile-header__logo">
           <BarChart3 size={18} className="mobile-header__logo-icon" />
@@ -202,7 +233,6 @@ function App() {
         </button>
       </header>
 
-      {/* ── Sidebar Overlay (mobile) ── */}
       {sidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
       )}
@@ -215,10 +245,10 @@ function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         recordCount={data.length}
+        filteredCount={filteredData.length}
         deletedCount={deletedData.length}
       />
 
-      {/* ── Main Content ── */}
       <main
         className="main-content"
         onDragOver={handleDragOver}
@@ -265,15 +295,24 @@ function App() {
 
         {!loading && data.length > 0 && activeTab !== 'Deleted' && activeTab !== 'AskAI' && (
           <div className="fade-in">
-            {activeTab === 'Overview'   && <Overview   data={data} />}
-            {activeTab === 'Affiliates' && <Affiliates data={data} />}
-            {activeTab === 'Insights'   && <Insights   data={data} />}
-            {activeTab === 'Data'       && <Data       data={data} />}
+            <FilterBar data={data} />
+            {activeTab === 'Overview'   && <Overview   data={filteredData} />}
+            {activeTab === 'ByMonth'    && <ByMonth    data={filteredData} />}
+            {activeTab === 'ByCountry'  && <ByCountry  data={filteredData} />}
+            {activeTab === 'ByBrand'    && <ByBrand    data={filteredData} />}
+            {activeTab === 'BySource'   && <BySource   data={filteredData} />}
+            {activeTab === 'Cohort'     && <Cohort     data={filteredData} />}
+            {activeTab === 'Affiliates' && <Affiliates data={filteredData} onPartnerClick={openAffiliateProfile} />}
+            {activeTab === 'Campaigns'  && <Campaigns  data={filteredData} />}
+            {activeTab === 'Insights'   && <Insights   data={filteredData} />}
+            {activeTab === 'Data'       && <Data       data={filteredData} />}
+            {activeTab === 'AffiliateProfile' && selectedPartnerId && (
+              <AffiliateProfile partnerId={selectedPartnerId} data={filteredData} onBack={closeAffiliateProfile} />
+            )}
           </div>
         )}
       </main>
 
-      {/* ── Mobile Bottom Navigation ── */}
       <nav className="mobile-bottom-nav">
         {TABS.filter(({ id }) => id !== 'Deleted' || deletedData.length > 0).map(({ id, label, Icon }) => (
           <button
@@ -286,7 +325,6 @@ function App() {
           </button>
         ))}
       </nav>
-
     </div>
   );
 }

@@ -17,10 +17,10 @@
   --border-light: rgba(255, 255, 255, 0.04);
 
   /* Text */
-  --text-primary:   #ffffff;
-  --text-secondary: #b0cce0;
-  --text-muted:     #8aaec8;
-  --text-dim:       #7a9ab5;
+  --text-primary:   #e9eef5;
+  --text-secondary: #536b87;
+  --text-muted:     #2d3e52;
+  --text-dim:       #3a5270;
 
   /* Brand accents */
   --gold:        #f0b429;
@@ -73,10 +73,10 @@
   --border-gold:  rgba(240, 180, 41, 0.5);
   --border-light: rgba(0, 0, 0, 0.05);
 
-  --text-primary:   #000000;
-  --text-secondary: #000000;
-  --text-muted:     #000000;
-  --text-dim:       #000000;
+  --text-primary:   #0f1923;
+  --text-secondary: #4b6280;
+  --text-muted:     #8499b0;
+  --text-dim:       #aab8c8;
 
   --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.14);
@@ -372,10 +372,10 @@ body::before {
   padding: 9px 10px;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-family: var(--font-body);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   border-radius: var(--r-sm);
   transition: all 0.18s ease;
@@ -1352,21 +1352,6 @@ body::before {
 .ask-card--error  { padding: 0; }
 .ask-card--live   { opacity: 0.9; }
 
-/* User question bubble — right-aligned */
-.ask-card--question {
-  align-self: flex-end;
-  max-width: 80%;
-  background: transparent;
-  border-color: var(--gold);
-  border-radius: 14px 14px 4px 14px;
-}
-.ask-card--question .ask-card__question {
-  border-bottom: none;
-  color: var(--gold);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
 /* Group a question + its answer/error so they read as one unit */
 .ask-turn { display: flex; flex-direction: column; gap: 8px; }
 
@@ -1486,21 +1471,6 @@ body::before {
 }
 @keyframes ask-spin { to { transform: rotate(360deg); } }
 
-@keyframes drawerSlideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-@keyframes backdropFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.drawer-panel {
-  animation: drawerSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.drawer-backdrop {
-  animation: backdropFadeIn 0.2s ease both;
-}
-
 .ask-error {
   align-self: stretch; border-radius: 10px; padding: 10px 14px; font-size: 0.9rem;
 }
@@ -1509,67 +1479,52 @@ body::before {
 .ask-error.iteration-cap { background: #1e293b; border-left: 3px solid #7c3aed; color: #cbd5e1; }
 .ask-error.generic       { background: #3a1e1e; border-left: 3px solid #ef4444; color: #cbd5e1; }
 
-/* ─── Ask AI — Light Mode Overrides ─── */
-[data-theme="light"] .ask-hero__title    { color: #000000; }
-[data-theme="light"] .ask-hero__subtitle { color: #000000; }
-
-[data-theme="light"] .ask-search-bar {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.15);
+/* NoMatchingRows — shared empty state for filter-zero pages */
+.no-matching-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  margin: 12px 0;
 }
-[data-theme="light"] .ask-search-bar__input          { color: #000000; }
-[data-theme="light"] .ask-search-bar__input::placeholder { color: #6b7280; }
-[data-theme="light"] .ask-search-bar__icon-btn        { color: #374151; }
-[data-theme="light"] .ask-search-bar__icon-btn:hover  { color: #000000; }
-
-[data-theme="light"] .ask-card {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.1);
+.no-matching-rows__icon {
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
-[data-theme="light"] .ask-card__question {
-  color: #000000;
-  border-bottom-color: rgba(0, 0, 0, 0.08);
+.no-matching-rows h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
 }
-[data-theme="light"] .ask-card--question {
+.no-matching-rows p { margin: 0; font-size: 0.8rem; }
+.no-matching-rows__reset {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
   background: transparent;
-  border-color: var(--gold);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 4px;
 }
-[data-theme="light"] .ask-card--question .ask-card__question {
-  color: #92400e;
-}
-[data-theme="light"] .ask-card--answer p,
-[data-theme="light"] .ask-card--answer ul,
-[data-theme="light"] .ask-card--answer ol { color: #000000; }
-[data-theme="light"] .ask-card--answer strong { color: #000000; }
-[data-theme="light"] .ask-card--answer code {
-  background: #f1f5f9; color: #92400e;
-}
-[data-theme="light"] .ask-card--answer th,
-[data-theme="light"] .ask-card--answer td {
-  border-color: rgba(0, 0, 0, 0.1);
-  color: #000000;
-}
-[data-theme="light"] .ask-card--answer th {
-  background: #f1f5f9;
-  color: #000000;
-}
+.no-matching-rows__reset:hover { background: rgba(0, 212, 255, 0.08); }
 
-[data-theme="light"] .ask-suggestions__label { color: #374151; }
-[data-theme="light"] .ask-chip {
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #000000;
+/* Affiliates table — clickable partner ID */
+.affiliate-id-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #00d4ff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
 }
-
-[data-theme="light"] .ask-status         { color: #374151; }
-[data-theme="light"] .ask-status__spinner { border-color: rgba(0,0,0,0.12); border-top-color: var(--gold); }
-
-[data-theme="light"] .ask-msg--assistant {
-  background: #f1f5f9; color: #000000; border-color: rgba(0,0,0,0.1);
-}
-[data-theme="light"] .ask-msg--assistant th,
-[data-theme="light"] .ask-msg--assistant td { border-color: rgba(0,0,0,0.1); }
-
-[data-theme="light"] .ask-error.rate-limited  { background: #dbeafe; color: #1e3a5f; }
-[data-theme="light"] .ask-error.off-topic     { background: #fef3c7; color: #78350f; }
-[data-theme="light"] .ask-error.iteration-cap { background: #ede9fe; color: #4c1d95; }
-[data-theme="light"] .ask-error.generic       { background: #fee2e2; color: #7f1d1d; }
+.affiliate-id-link:hover { text-decoration: underline; }

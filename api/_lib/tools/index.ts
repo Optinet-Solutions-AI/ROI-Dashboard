@@ -30,22 +30,26 @@ const FILTERS_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    affiliate_id:   { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    affiliate_name: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    country:        { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    campaign:       { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    brand:          { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    am:             { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    source:         { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    period:         { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
-    date_from:      { type: 'string', description: 'YYYY-MM-DD' },
-    date_to:        { type: 'string', description: 'YYYY-MM-DD' },
+    affiliate_id:       { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    affiliate_name:     { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    company_name:       { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    country:            { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    player_country:     { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    campaign:           { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    brand:              { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    am:                 { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    source:             { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    problematic_source: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    period:             { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+    ftd_month:          { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'YYYY-MM (derived from FD_Date)' },
+    date_from:          { type: 'string', description: 'YYYY-MM-DD' },
+    date_to:            { type: 'string', description: 'YYYY-MM-DD' },
   },
 } as const;
 
 const DIM_ENUM = {
   type: 'string',
-  enum: ['affiliate_id','affiliate_name','country','campaign','brand','am','source'],
+  enum: ['affiliate_id','affiliate_name','company_name','country','player_country','campaign','brand','am','source','problematic_source'],
 } as const;
 
 const METRIC_ENUM = {

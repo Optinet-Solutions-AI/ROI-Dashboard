@@ -8,13 +8,17 @@ CREATE TABLE IF NOT EXISTS public.performance_records (
   id                    bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   affiliate_id          text,
   affiliate_name        text,
+  company_name          text,
   country               text,
+  player_country        text,
   campaign              text,
   brand                 text,
   am                    text,
   source                text,
-  period                text,         -- stored as text to handle both string and numeric periods
-  date                  text,         -- stored as text (ISO YYYY-MM-DD or Excel serial converted)
+  problematic_source    smallint,
+  period                text,
+  date                  text,
+  ftd_month             text,
   clicks                numeric,
   registrations         numeric,
   ftds                  numeric,
@@ -59,3 +63,10 @@ CREATE INDEX IF NOT EXISTS idx_perf_affiliate_id ON public.performance_records (
 CREATE INDEX IF NOT EXISTS idx_perf_brand        ON public.performance_records (brand);
 CREATE INDEX IF NOT EXISTS idx_perf_country      ON public.performance_records (country);
 CREATE INDEX IF NOT EXISTS idx_perf_date         ON public.performance_records (date);
+CREATE INDEX IF NOT EXISTS idx_perf_company_name       ON public.performance_records (company_name);
+CREATE INDEX IF NOT EXISTS idx_perf_player_country     ON public.performance_records (player_country);
+CREATE INDEX IF NOT EXISTS idx_perf_problematic_source ON public.performance_records (problematic_source);
+CREATE INDEX IF NOT EXISTS idx_perf_ftd_month          ON public.performance_records (ftd_month);
+CREATE INDEX IF NOT EXISTS idx_perf_am                 ON public.performance_records (am);
+CREATE INDEX IF NOT EXISTS idx_perf_source             ON public.performance_records (source);
+CREATE INDEX IF NOT EXISTS idx_perf_period             ON public.performance_records (period);

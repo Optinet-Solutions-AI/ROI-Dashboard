@@ -1,21 +1,35 @@
-import * as XLSX from 'xlsx';
-
+// Map Excel header variants to canonical DB column names.
+// Keep `company_name` and `player_country` as separate fields — the ROI
+// workbook uses them as distinct pivot dimensions and collapsing them
+// into affiliate_name / country loses filter granularity.
 const COLUMN_ALIASES: Record<string, string> = {
-  partner_id:    'affiliate_id',
-  partner_name:  'affiliate_name',
-  affiliate:     'affiliate_id',
-  player_country: 'country',
-  campaign_name: 'campaign',
-  stats_date:    'date',
-  ftd_month:     'date',      // ROI export: "FTD month" → date
-  ftd_count:     'ftds',
-  ftd:           'ftds',      // ROI export: "FTD" → ftds
-  deposits_sum:  'revenue',
-  partner_income: 'cost',
-  company_name:  'affiliate_name',
-  fd_date:       'date',
-  flat_amt:      'flats_and_adjustments',
+  partner_id:                'affiliate_id',
+  partner_name:              'affiliate_name',
+  affiliate:                 'affiliate_id',
+  // "Company_name_f" is the workbook's formatted/denormalized company-name column.
+  company_name_f:            'company_name',
+  campaign_name:             'campaign',
+  stats_date:                'date',
+  fd_date:                   'date',
+  ftd_count:                 'ftds',
+  ftd:                       'ftds',
+  deposits_sum:              'revenue',
+  partner_income:            'cost',
+  flat_amt:                  'flats_and_adjustments',
   flats_and_adjustments_col: 'flats_and_adjustments',
+};
+
+/**
+ * Extract YYYY-MM from a date-ish string. Returns undefined if the input
+ * can't be parsed as a date — the Excel workbook uses "FTD month" as a
+ * row grouping of FD_Date, so populating this lets us filter/group by
+ * month without re-parsing dates on every render.
+ */
+export const deriveFtdMonth = (value: unknown): string | undefined => {
+  if (value == null || value === '') return undefined;
+  const str = String(value).trim();
+  const match = /^(\d{4})-(\d{2})/.exec(str);
+  return match ? `${match[1]}-${match[2]}` : undefined;
 };
 
 export const normalizeColumnName = (name: string): string => {
@@ -80,13 +94,18 @@ const isGrandTotalRow = (row: Record<string, any>): boolean =>
   Object.values(row).some(v => String(v ?? '').toLowerCase().includes('grand total'));
 
 export const parseExcelFile = async (file: File): Promise<any[]> => {
+  const XLSX = await import('xlsx');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = e.target?.result as ArrayBuffer;
         // type:'array' + Uint8Array is significantly faster than readAsBinaryString / type:'binary'
-        const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+        const workbook = XLSX.read(new Uint8Array(data), {
+          type: 'array',
+          cellDates: true,
+          dateNF: 'yyyy-mm-dd',
+        });
 
         const allData: any[] = [];
 
@@ -94,7 +113,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
           const sheet = workbook.Sheets[sheetName];
 
           // First pass: get raw rows to detect header offset
-          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+          const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
           const headerRowIdx = findHeaderRowIndex(rawRows);
 
           let jsonRows: Record<string, any>[];
@@ -112,7 +131,7 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               return obj;
             }).filter(Boolean) as Record<string, any>[];
           } else {
-            jsonRows = XLSX.utils.sheet_to_json(sheet) as Record<string, any>[];
+            jsonRows = XLSX.utils.sheet_to_json(sheet, { raw: false }) as Record<string, any>[];
           }
 
           for (const row of jsonRows) {
@@ -123,6 +142,26 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               const normKey   = normalizeColumnName(key);
               const aliasedKey = COLUMN_ALIASES[normKey] ?? normKey;
               newRow[aliasedKey] = parseNumericValue(row[key]);
+            }
+
+            // Derive ftd_month from the canonical date column so it is available
+            // as a filter/grouping dimension without re-parsing at render time.
+            if (newRow.date && !newRow.ftd_month) {
+              const month = deriveFtdMonth(newRow.date);
+              if (month) newRow.ftd_month = month;
+            }
+
+            // problematic_source in the workbook is 0/1 — make sure it's numeric.
+            // Use Number() (not parseFloat) for strictness: "1 affiliate" should reject.
+            // Empty or whitespace-only strings are treated as absent (not promoted to 0).
+            if (newRow.problematic_source != null && typeof newRow.problematic_source !== 'number') {
+              const raw = String(newRow.problematic_source).trim();
+              if (raw === '') {
+                newRow.problematic_source = undefined;
+              } else {
+                const n = Number(raw);
+                newRow.problematic_source = Number.isFinite(n) ? n : undefined;
+              }
             }
 
             // Skip entirely blank rows
