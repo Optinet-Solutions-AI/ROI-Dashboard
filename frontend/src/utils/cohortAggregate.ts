@@ -22,13 +22,32 @@ function valueOf(row: PerformanceRecord, metric: CohortMetric): number {
   }
 }
 
+// Months since FTD month, derived from date and ftd_month when period is absent.
+function resolvePeriod(row: PerformanceRecord): number | null {
+  const stored = Number(row.period);
+  if (Number.isFinite(stored)) return stored;
+
+  const dateStr     = String(row.date      ?? '').trim();
+  const ftdMonthStr = String(row.ftd_month ?? '').trim();
+  if (!dateStr || !ftdMonthStr) return null;
+
+  const dm = /^(\d{4})-(\d{2})/.exec(dateStr);
+  const fm = /^(\d{4})-(\d{2})/.exec(ftdMonthStr);
+  if (!dm || !fm) return null;
+
+  return (Number(dm[1]) - Number(fm[1])) * 12 + (Number(dm[2]) - Number(fm[2]));
+}
+
 /**
  * Cohort-ladder aggregation: for each (ftd_month, period) pair, sum the chosen
  * metric, then pivot so the result can feed a recharts LineChart directly —
  * one data entry per period, one series per cohort.
  *
- * Rows are skipped when `ftd_month` is blank or `period` cannot be coerced
- * to a finite number.
+ * `period` is taken from the record field when present; otherwise derived as
+ * months between `date` and `ftd_month` so existing Supabase rows without a
+ * stored period still produce cohort data.
+ *
+ * Rows are skipped when `ftd_month` is blank or period cannot be resolved.
  */
 export function cohortAggregate(data: PerformanceRecord[], opts: Opts): CohortAggregate {
   const buckets = new Map<string, Map<number, number>>();
@@ -38,8 +57,8 @@ export function cohortAggregate(data: PerformanceRecord[], opts: Opts): CohortAg
   for (const row of data) {
     const cohort = String(row.ftd_month ?? '').trim();
     if (!cohort) continue;
-    const periodNum = Number(row.period);
-    if (!Number.isFinite(periodNum)) continue;
+    const periodNum = resolvePeriod(row);
+    if (periodNum === null) continue;
 
     cohortSet.add(cohort);
     periodSet.add(periodNum);

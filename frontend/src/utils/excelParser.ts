@@ -151,6 +151,17 @@ export const parseExcelFile = async (file: File): Promise<any[]> => {
               if (month) newRow.ftd_month = month;
             }
 
+            // Derive period (months since FTD) from date and ftd_month when not
+            // explicitly provided by the workbook. Stored so Supabase rows have
+            // it pre-computed and the cohort chart can group without re-deriving.
+            if (newRow.date && newRow.ftd_month && newRow.period == null) {
+              const dm = /^(\d{4})-(\d{2})/.exec(String(newRow.date));
+              const fm = /^(\d{4})-(\d{2})/.exec(String(newRow.ftd_month));
+              if (dm && fm) {
+                newRow.period = (Number(dm[1]) - Number(fm[1])) * 12 + (Number(dm[2]) - Number(fm[2]));
+              }
+            }
+
             // problematic_source in the workbook is 0/1 — make sure it's numeric.
             // Use Number() (not parseFloat) for strictness: "1 affiliate" should reject.
             // Empty or whitespace-only strings are treated as absent (not promoted to 0).
