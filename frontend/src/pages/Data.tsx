@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, Filter } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
+import { NoMatchingRows } from '../components/NoMatchingRows';
 
 const PAGE_SIZE = 20;
 
@@ -256,14 +257,7 @@ export const Data: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
   };
 
   if (data.length === 0) {
-    return (
-      <div className="empty-state">
-        <h2 style={{ fontSize: '2rem', marginBottom: '16px' }}>No data to display</h2>
-        <p style={{ color: '#ffffff', maxWidth: '400px', textAlign: 'center' }}>
-          Upload an Excel file from the sidebar to view raw records here.
-        </p>
-      </div>
-    );
+    return <NoMatchingRows entity="rows" />;
   }
 
   return (

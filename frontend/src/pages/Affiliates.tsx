@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
+import { NoMatchingRows } from '../components/NoMatchingRows';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
 import {
@@ -103,6 +104,8 @@ export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) 
 
   /* ── Reset to page 1 whenever column filters change ── */
   useEffect(() => { setPage(1); }, [colFilters]);
+
+  if (data.length === 0) return <NoMatchingRows entity="affiliates" />;
 
   /* ── Aggregate per-affiliate totals ── */
   const affMap: Record<string, any> = {};

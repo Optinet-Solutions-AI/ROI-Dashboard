@@ -1,8 +1,11 @@
 import React from 'react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
+import { NoMatchingRows } from '../components/NoMatchingRows';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export const Campaigns: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
+  if (data.length === 0) return <NoMatchingRows entity="campaigns" />;
+
   const campMap: Record<string, any> = {};
   data.forEach(d => {
     const camp = d.campaign || d.brand;

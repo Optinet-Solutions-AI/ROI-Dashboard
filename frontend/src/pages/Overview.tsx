@@ -1,6 +1,7 @@
 import React from 'react';
 import { Euro, CreditCard, TrendingUp, Percent, UserCheck, Target, Activity, Sliders, Gift, ArrowDownCircle, Users, BarChart2, Download } from 'lucide-react';
 import { KPICard } from '../components/KPICard';
+import { NoMatchingRows } from '../components/NoMatchingRows';
 import { type PerformanceRecord, processKPIs } from '../utils/kpiEngine';
 import { downloadCSV } from '../utils/exportUtils';
 import { useChartColors } from '../lib/theme';
@@ -15,8 +16,11 @@ const COLORS = [
 ];
 
 export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
-  const kpis = processKPIs(data);
   const { axisColor, axisStroke, tooltipStyle } = useChartColors();
+
+  if (data.length === 0) return <NoMatchingRows entity="records" />;
+
+  const kpis = processKPIs(data);
 
   const handleExport = () => {
     const rows = data.map(r => ({ ...r }));
