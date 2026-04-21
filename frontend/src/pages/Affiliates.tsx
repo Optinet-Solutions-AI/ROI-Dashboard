@@ -730,36 +730,33 @@ export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) 
             </tr>
           </thead>
           <tbody>
-            {pageData.map((row, idx) => (
-              <tr key={idx}>
-                <td style={{ color: axisColor, fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-                  {String(pageStart + idx + 1).padStart(2, '0')}
-                </td>
-                {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
-                {visibleCols.has('affiliate_id')   && (
-                  <td style={{ fontWeight: 500 }}>
-                    {onPartnerClick && row.affiliate_id ? (
-                      <button
-                        type="button"
-                        className="affiliate-id-link"
-                        onClick={() => onPartnerClick(String(row.affiliate_id))}
-                      >
-                        {row.affiliate_id}
-                      </button>
-                    ) : (
-                      row.affiliate_id
-                    )}
+            {pageData.map((row, idx) => {
+              const isClickable = !!(onPartnerClick && row.affiliate_id);
+              return (
+                <tr
+                  key={idx}
+                  onClick={isClickable ? () => onPartnerClick!(String(row.affiliate_id)) : undefined}
+                  style={{ cursor: isClickable ? 'pointer' : undefined }}
+                >
+                  <td style={{ color: axisColor, fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                    {String(pageStart + idx + 1).padStart(2, '0')}
                   </td>
-                )}
-                {visibleCols.has('clicks')  && <td>{row.clicks.toLocaleString()}</td>}
-                {visibleCols.has('ftds')    && <td>{row.ftds.toLocaleString()}</td>}
-                {visibleCols.has('revenue') && <td>{formatter.format(row.revenue)}</td>}
-                {visibleCols.has('cost')    && <td>{formatter.format(row.cost)}</td>}
-                {visibleCols.has('profit')  && <td style={{ color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{formatter.format(row.profit)}</td>}
-                {visibleCols.has('roi')     && <td style={{ color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{pctFormatter.format(row.roi)}</td>}
-                {visibleCols.has('cpa')     && <td style={{ color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>}
-              </tr>
-            ))}
+                  {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
+                  {visibleCols.has('affiliate_id') && (
+                    <td style={{ fontWeight: 500, color: isClickable ? '#00d4ff' : undefined }}>
+                      {row.affiliate_id || '—'}
+                    </td>
+                  )}
+                  {visibleCols.has('clicks')  && <td>{row.clicks.toLocaleString()}</td>}
+                  {visibleCols.has('ftds')    && <td>{row.ftds.toLocaleString()}</td>}
+                  {visibleCols.has('revenue') && <td>{formatter.format(row.revenue)}</td>}
+                  {visibleCols.has('cost')    && <td>{formatter.format(row.cost)}</td>}
+                  {visibleCols.has('profit')  && <td style={{ color: row.profit >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{formatter.format(row.profit)}</td>}
+                  {visibleCols.has('roi')     && <td style={{ color: row.roi >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{pctFormatter.format(row.roi)}</td>}
+                  {visibleCols.has('cpa')     && <td style={{ color: 'var(--text-primary)' }}>{formatter.format(row.cpa)}</td>}
+                </tr>
+              );
+            })}
             {filteredData.length === 0 && (
               <tr>
                 <td colSpan={1 + visibleCols.size} style={{ textAlign: 'center', color: axisColor, padding: '32px 0' }}>
