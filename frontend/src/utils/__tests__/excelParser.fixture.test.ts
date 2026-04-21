@@ -21,7 +21,12 @@ function buildWorkbook(): Uint8Array {
 }
 
 function toFile(bytes: Uint8Array, name = 'fixture.xlsx'): File {
-  return new File([bytes], name, {
+  // XLSX.write returns Uint8Array<ArrayBufferLike>; TS 6's strict BlobPart
+  // typing requires Uint8Array<ArrayBuffer>. Copying via `new Uint8Array(bytes)`
+  // allocates a fresh ArrayBuffer-backed view that satisfies the structural check
+  // AND preserves the byte payload (unlike wrapping the raw ArrayBuffer, which
+  // behaves inconsistently in jsdom's File/Blob implementation).
+  return new File([new Uint8Array(bytes)], name, {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 }
