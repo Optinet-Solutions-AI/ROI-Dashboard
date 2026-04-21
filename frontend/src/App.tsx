@@ -5,6 +5,7 @@ import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
 import { Overview } from './pages/Overview';
 import { Affiliates } from './pages/Affiliates';
+import { AffiliateProfile } from './pages/AffiliateProfile';
 import { Campaigns } from './pages/Campaigns';
 import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
@@ -112,6 +113,7 @@ function AppShell() {
   const [loading, setLoading]         = useState(true);
   const [isDraggingOver, setDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
   const { filters } = useFilters();
   const filteredData = useMemo(() => applyFilters(data, filters), [data, filters]);
@@ -200,6 +202,17 @@ function AppShell() {
     handleFileUpload(file);
   };
 
+  const openAffiliateProfile = (partnerId: string) => {
+    setSelectedPartnerId(partnerId);
+    setActiveTab('AffiliateProfile');
+    setSidebarOpen(false);
+  };
+
+  const closeAffiliateProfile = () => {
+    setSelectedPartnerId(null);
+    setActiveTab('Affiliates');
+  };
+
   const switchTab = (tab: string) => { setActiveTab(tab); setSidebarOpen(false); };
 
   return (
@@ -282,10 +295,13 @@ function AppShell() {
             {activeTab === 'ByCountry'  && <ByCountry  data={filteredData} />}
             {activeTab === 'ByBrand'    && <ByBrand    data={filteredData} />}
             {activeTab === 'BySource'   && <BySource   data={filteredData} />}
-            {activeTab === 'Affiliates' && <Affiliates data={filteredData} />}
+            {activeTab === 'Affiliates' && <Affiliates data={filteredData} onPartnerClick={openAffiliateProfile} />}
             {activeTab === 'Campaigns'  && <Campaigns  data={filteredData} />}
             {activeTab === 'Insights'   && <Insights   data={filteredData} />}
             {activeTab === 'Data'       && <Data       data={filteredData} />}
+            {activeTab === 'AffiliateProfile' && selectedPartnerId && (
+              <AffiliateProfile partnerId={selectedPartnerId} data={filteredData} onBack={closeAffiliateProfile} />
+            )}
           </div>
         )}
       </main>

@@ -1515,3 +1515,16 @@ body::before {
   margin-top: 4px;
 }
 .no-matching-rows__reset:hover { background: rgba(0, 212, 255, 0.08); }
+
+/* Affiliates table — clickable partner ID */
+.affiliate-id-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #00d4ff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+.affiliate-id-link:hover { text-decoration: underline; }

@@ -44,7 +44,12 @@ const popInputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
+interface AffiliatesProps {
+  data: PerformanceRecord[];
+  onPartnerClick?: (partnerId: string) => void;
+}
+
+export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) => {
   const ALL_COLS: { key: string; label: string }[] = [
     { key: 'affiliate_name', label: 'Affiliate Name' },
     { key: 'affiliate_id',   label: 'Affiliate ID'   },
@@ -728,7 +733,21 @@ export const Affiliates: React.FC<{ data: PerformanceRecord[] }> = ({ data }) =>
                   {String(pageStart + idx + 1).padStart(2, '0')}
                 </td>
                 {visibleCols.has('affiliate_name') && <td style={{ fontWeight: 500 }}>{row.affiliate_name || '—'}</td>}
-                {visibleCols.has('affiliate_id')   && <td style={{ fontWeight: 500 }}>{row.affiliate_id}</td>}
+                {visibleCols.has('affiliate_id')   && (
+                  <td style={{ fontWeight: 500 }}>
+                    {onPartnerClick && row.affiliate_id ? (
+                      <button
+                        type="button"
+                        className="affiliate-id-link"
+                        onClick={() => onPartnerClick(String(row.affiliate_id))}
+                      >
+                        {row.affiliate_id}
+                      </button>
+                    ) : (
+                      row.affiliate_id
+                    )}
+                  </td>
+                )}
                 {visibleCols.has('clicks')  && <td>{row.clicks.toLocaleString()}</td>}
                 {visibleCols.has('ftds')    && <td>{row.ftds.toLocaleString()}</td>}
                 {visibleCols.has('revenue') && <td>{formatter.format(row.revenue)}</td>}
