@@ -30,13 +30,14 @@ export function PivotTable({ rowLabel, rows, data }: Props) {
   const sorted = useMemo(() => {
     const copy = [...rows];
     copy.sort((a, b) => {
-      const av = sortKey === 'key' ? a.key : sortKey === 'count' ? a.count : (a.kpis as any)[sortKey];
-      const bv = sortKey === 'key' ? b.key : sortKey === 'count' ? b.count : (b.kpis as any)[sortKey];
-      if (typeof av === 'number' && typeof bv === 'number') {
-        return sortDir === 'asc' ? av - bv : bv - av;
+      if (sortKey === 'key') {
+        return sortDir === 'asc' ? a.key.localeCompare(b.key) : b.key.localeCompare(a.key);
       }
-      const astr = String(av ?? ''); const bstr = String(bv ?? '');
-      return sortDir === 'asc' ? astr.localeCompare(bstr) : bstr.localeCompare(astr);
+      const pick = (r: PivotRow): number =>
+        sortKey === 'count' ? r.count : (r.kpis[sortKey as Exclude<SortKey, 'key' | 'count'>] as number);
+      const av = pick(a);
+      const bv = pick(b);
+      return sortDir === 'asc' ? av - bv : bv - av;
     });
     return copy;
   }, [rows, sortKey, sortDir]);

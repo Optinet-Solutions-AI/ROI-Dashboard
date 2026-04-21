@@ -113,7 +113,7 @@ export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
       {/* ── Performance Ratios ── */}
       <div className="kpi-group-label">Performance</div>
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
-        <KPICard label="ROI"       value={kpis.roi.toFixed(1)}          color="#818cf8" icon={<Percent         size={15} />} />
+        <KPICard label="ROI"       value={kpis.roi.toFixed(2)}          color="#818cf8" icon={<Percent         size={15} />} />
         <KPICard label="% Bonus"   value={pct.format(kpis.bonus_pct)}   color="#f97316" icon={<Gift            size={15} />} />
         <KPICard label="% Cashout" value={pct.format(kpis.cashout_pct)} color="#ef4444" icon={<ArrowDownCircle size={15} />} />
         <KPICard label="ADPU"      value={formatEur(kpis.adpu)}        color="#00d4ff" icon={<Users           size={15} />} />

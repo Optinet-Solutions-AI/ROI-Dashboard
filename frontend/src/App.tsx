@@ -215,7 +215,11 @@ function AppShell() {
     setActiveTab('Affiliates');
   };
 
-  const switchTab = (tab: string) => { setActiveTab(tab); setSidebarOpen(false); };
+  const switchTab = (tab: string) => {
+    if (tab !== 'AffiliateProfile') setSelectedPartnerId(null);
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
 
   return (
     <div className="app-root">
