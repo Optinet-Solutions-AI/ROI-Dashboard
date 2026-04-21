@@ -1,5 +1,3 @@
-import * as XLSX from 'xlsx';
-
 // Map Excel header variants to canonical DB column names.
 // Keep `company_name` and `player_country` as separate fields — the ROI
 // workbook uses them as distinct pivot dimensions and collapsing them
@@ -96,6 +94,7 @@ const isGrandTotalRow = (row: Record<string, any>): boolean =>
   Object.values(row).some(v => String(v ?? '').toLowerCase().includes('grand total'));
 
 export const parseExcelFile = async (file: File): Promise<any[]> => {
+  const XLSX = await import('xlsx');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
