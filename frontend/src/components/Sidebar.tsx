@@ -2,7 +2,7 @@ import React from 'react';
 import {
   UploadCloud, LayoutDashboard, Users, Megaphone,
   Lightbulb, Table, BarChart3, X, Sun, Moon, Trash2, Clock, Sparkles,
-  CalendarDays, Globe, Tag, Link,
+  CalendarDays, Globe, Tag, Link, Layers,
 } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 
@@ -25,6 +25,7 @@ const TABS = [
   { id: 'ByCountry',  label: 'By Country', Icon: Globe           },
   { id: 'ByBrand',    label: 'By Brand',   Icon: Tag             },
   { id: 'BySource',   label: 'By Source',  Icon: Link            },
+  { id: 'Cohort',     label: 'Cohort',     Icon: Layers          },
   { id: 'Affiliates', label: 'Affiliates', Icon: Users           },
   { id: 'Campaigns',  label: 'Campaigns',  Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',   Icon: Lightbulb       },

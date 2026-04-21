@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles, CalendarDays, Globe, Tag, Link } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles, CalendarDays, Globe, Tag, Link, Layers } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
@@ -15,6 +15,7 @@ import { ByMonth } from './pages/ByMonth';
 import { ByCountry } from './pages/ByCountry';
 import { ByBrand } from './pages/ByBrand';
 import { BySource } from './pages/BySource';
+import { Cohort } from './pages/Cohort';
 import { fetchRecords, replaceRecords, clearRecords } from './lib/db';
 import { FilterProvider, useFilters } from './contexts/FilterContext';
 import { FilterBar } from './components/FilterBar/FilterBar';
@@ -90,6 +91,7 @@ const TABS = [
   { id: 'ByCountry',  label: 'By Country', Icon: Globe           },
   { id: 'ByBrand',    label: 'By Brand',   Icon: Tag             },
   { id: 'BySource',   label: 'By Source',  Icon: Link            },
+  { id: 'Cohort',     label: 'Cohort',     Icon: Layers          },
   { id: 'Affiliates', label: 'Affiliates', Icon: Users           },
   { id: 'Campaigns',  label: 'Campaigns',  Icon: Megaphone       },
   { id: 'Insights',   label: 'Insights',   Icon: Lightbulb       },
@@ -295,6 +297,7 @@ function AppShell() {
             {activeTab === 'ByCountry'  && <ByCountry  data={filteredData} />}
             {activeTab === 'ByBrand'    && <ByBrand    data={filteredData} />}
             {activeTab === 'BySource'   && <BySource   data={filteredData} />}
+            {activeTab === 'Cohort'     && <Cohort     data={filteredData} />}
             {activeTab === 'Affiliates' && <Affiliates data={filteredData} onPartnerClick={openAffiliateProfile} />}
             {activeTab === 'Campaigns'  && <Campaigns  data={filteredData} />}
             {activeTab === 'Insights'   && <Insights   data={filteredData} />}
