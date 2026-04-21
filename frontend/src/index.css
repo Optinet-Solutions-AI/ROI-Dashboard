@@ -1540,14 +1540,14 @@ body::before {
 
 .affiliate-drawer {
   position: fixed;
-  left: 0;
+  right: 0;
   top: 0;
   height: 100vh;
   width: 540px;
   max-width: 92vw;
   background: var(--bg-card);
-  border-right: 1px solid var(--border);
-  box-shadow: 6px 0 40px rgba(0, 0, 0, 0.45);
+  border-left: 1px solid var(--border);
+  box-shadow: -6px 0 40px rgba(0, 0, 0, 0.45);
   z-index: 300;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1560,7 +1560,7 @@ body::before {
 .affiliate-drawer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 @keyframes drawerSlideIn {
-  from { transform: translateX(-100%); }
+  from { transform: translateX(100%); }
   to   { transform: translateX(0); }
 }
 
