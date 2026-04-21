@@ -61,11 +61,12 @@ export const Overview: React.FC<{ data: PerformanceRecord[] }> = ({ data }) => {
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 10);
 
-  /* Revenue by country */
+  /* Deposits sum by country */
   const countryMap: Record<string, number> = {};
   data.forEach(d => {
-    if (!d.country) return;
-    countryMap[d.country] = (countryMap[d.country] || 0) + (Number(d.revenue) || 0);
+    const c = d.country || d.player_country;
+    if (!c) return;
+    countryMap[c] = (countryMap[c] || 0) + (Number(d.revenue) || 0);
   });
   const countryData = Object.keys(countryMap)
     .map(key => ({ name: key, value: countryMap[key] }))
