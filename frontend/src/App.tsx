@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles } from 'lucide-react';
+import { BarChart3, LayoutDashboard, Users, Megaphone, Lightbulb, Table, Menu, Trash2, Sparkles, CalendarDays, Globe, Tag, Link } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { parseExcelFile } from './utils/excelParser';
 import type { PerformanceRecord } from './utils/kpiEngine';
@@ -10,6 +10,10 @@ import { Insights } from './pages/Insights';
 import { Data } from './pages/Data';
 import { Deleted } from './pages/Deleted';
 import { AskAI } from './pages/AskAI';
+import { ByMonth } from './pages/ByMonth';
+import { ByCountry } from './pages/ByCountry';
+import { ByBrand } from './pages/ByBrand';
+import { BySource } from './pages/BySource';
 import { fetchRecords, replaceRecords, clearRecords } from './lib/db';
 import { FilterProvider, useFilters } from './contexts/FilterContext';
 import { FilterBar } from './components/FilterBar/FilterBar';
@@ -81,11 +85,15 @@ async function clearIDB(): Promise<void> {
 const TABS = [
   { id: 'Overview',   label: 'Overview',   Icon: LayoutDashboard },
   { id: 'AskAI',      label: 'Ask AI',     Icon: Sparkles        },
-  { id: 'Affiliates', label: 'Affiliates',  Icon: Users           },
-  { id: 'Campaigns',  label: 'Campaigns',   Icon: Megaphone       },
-  { id: 'Insights',   label: 'Insights',    Icon: Lightbulb       },
-  { id: 'Data',       label: 'Data',        Icon: Table           },
-  { id: 'Deleted',    label: 'Deleted',     Icon: Trash2          },
+  { id: 'ByMonth',    label: 'By Month',   Icon: CalendarDays    },
+  { id: 'ByCountry',  label: 'By Country', Icon: Globe           },
+  { id: 'ByBrand',    label: 'By Brand',   Icon: Tag             },
+  { id: 'BySource',   label: 'By Source',  Icon: Link            },
+  { id: 'Affiliates', label: 'Affiliates', Icon: Users           },
+  { id: 'Campaigns',  label: 'Campaigns',  Icon: Megaphone       },
+  { id: 'Insights',   label: 'Insights',   Icon: Lightbulb       },
+  { id: 'Data',       label: 'Data',       Icon: Table           },
+  { id: 'Deleted',    label: 'Deleted',    Icon: Trash2          },
 ];
 
 function App() {
@@ -270,6 +278,10 @@ function AppShell() {
           <div className="fade-in">
             <FilterBar data={data} />
             {activeTab === 'Overview'   && <Overview   data={filteredData} />}
+            {activeTab === 'ByMonth'    && <ByMonth    data={filteredData} />}
+            {activeTab === 'ByCountry'  && <ByCountry  data={filteredData} />}
+            {activeTab === 'ByBrand'    && <ByBrand    data={filteredData} />}
+            {activeTab === 'BySource'   && <BySource   data={filteredData} />}
             {activeTab === 'Affiliates' && <Affiliates data={filteredData} />}
             {activeTab === 'Campaigns'  && <Campaigns  data={filteredData} />}
             {activeTab === 'Insights'   && <Insights   data={filteredData} />}
