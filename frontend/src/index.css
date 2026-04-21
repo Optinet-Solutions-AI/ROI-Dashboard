@@ -1528,3 +1528,43 @@ body::before {
   text-align: left;
 }
 .affiliate-id-link:hover { text-decoration: underline; }
+
+/* ─── Affiliate Drawer ─── */
+.affiliate-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 299;
+  animation: drawerFadeIn 0.2s ease;
+}
+
+.affiliate-drawer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 540px;
+  max-width: 92vw;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  box-shadow: 6px 0 40px rgba(0, 0, 0, 0.45);
+  z-index: 300;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 20px 48px;
+  animation: drawerSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.affiliate-drawer::-webkit-scrollbar { width: 4px; }
+.affiliate-drawer::-webkit-scrollbar-track { background: transparent; }
+.affiliate-drawer::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes drawerFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

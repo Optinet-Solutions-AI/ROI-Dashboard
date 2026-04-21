@@ -206,17 +206,15 @@ function AppShell() {
 
   const openAffiliateProfile = (partnerId: string) => {
     setSelectedPartnerId(partnerId);
-    setActiveTab('AffiliateProfile');
     setSidebarOpen(false);
   };
 
   const closeAffiliateProfile = () => {
     setSelectedPartnerId(null);
-    setActiveTab('Affiliates');
   };
 
   const switchTab = (tab: string) => {
-    if (tab !== 'AffiliateProfile') setSelectedPartnerId(null);
+    setSelectedPartnerId(null);
     setActiveTab(tab);
     setSidebarOpen(false);
   };
@@ -306,9 +304,6 @@ function AppShell() {
             {activeTab === 'Campaigns'  && <Campaigns  data={filteredData} />}
             {activeTab === 'Insights'   && <Insights   data={filteredData} />}
             {activeTab === 'Data'       && <Data       data={filteredData} />}
-            {activeTab === 'AffiliateProfile' && selectedPartnerId && (
-              <AffiliateProfile partnerId={selectedPartnerId} data={filteredData} onBack={closeAffiliateProfile} />
-            )}
           </div>
         )}
       </main>
@@ -325,6 +320,19 @@ function AppShell() {
           </button>
         ))}
       </nav>
+
+      {selectedPartnerId && (
+        <>
+          <div className="affiliate-drawer-backdrop" onClick={closeAffiliateProfile} />
+          <div className="affiliate-drawer">
+            <AffiliateProfile
+              partnerId={selectedPartnerId}
+              data={filteredData}
+              onBack={closeAffiliateProfile}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
