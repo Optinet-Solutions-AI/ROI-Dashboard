@@ -26,3 +26,4 @@ node_modules/
 .env*.local
 frontend/.env
 frontend/.env.local
+.vercel
