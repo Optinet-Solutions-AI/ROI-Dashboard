@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, Download, Filter, ChevronsUpDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import type { PerformanceRecord } from '../utils/kpiEngine';
 import { NoMatchingRows } from '../components/NoMatchingRows';
 import { downloadCSV } from '../utils/exportUtils';
@@ -74,7 +74,70 @@ export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) 
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>('desc');
   const [colSearch, setColSearch]     = useState<Record<string, string>>({});
   const [popoverPos, setPopoverPos]   = useState<{ top: number; left: number; right: number } | null>(null);
-  const colVizRef = React.useRef<HTMLDivElement>(null);
+  const [nameMapping, setNameMapping] = useState<Record<string, string>>(() => {
+    try {
+      const stored = localStorage.getItem('affiliate_name_mapping');
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const colVizRef  = React.useRef<HTMLDivElement>(null);
+  const nameCsvRef = React.useRef<HTMLInputElement>(null);
+
+  const handleNameCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) { setUploadMsg({ ok: false, text: 'File appears empty.' }); return; }
+
+        /* auto-detect delimiter */
+        const firstLine = lines[0];
+        const delim = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+
+        const parseRow = (line: string) =>
+          line.split(delim).map(c => c.trim().replace(/^"|"$/g, '').trim());
+
+        const normalize = (s: string) => s.toLowerCase().replace(/[\s_\-]/g, '');
+        const headers   = parseRow(firstLine).map(normalize);
+
+        /* fuzzy column detection */
+        const isIdCol   = (h: string) => h.includes('id') && !h.includes('name');
+        const isNameCol = (h: string) => h.includes('name');
+        const idIdx   = headers.findIndex(isIdCol);
+        const nameIdx = headers.findIndex(isNameCol);
+
+        if (idIdx === -1 || nameIdx === -1) {
+          setUploadMsg({ ok: false, text: `Could not find ID column (got: ${parseRow(firstLine).join(', ')}). Need a column containing "id" and one containing "name".` });
+          return;
+        }
+
+        const mapping: Record<string, string> = {};
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseRow(lines[i]);
+          const id   = (cols[idIdx]   || '').trim();
+          const name = (cols[nameIdx] || '').trim();
+          if (id && name) mapping[id] = name;
+        }
+
+        const count = Object.keys(mapping).length;
+        if (count === 0) { setUploadMsg({ ok: false, text: 'No valid rows found in file.' }); return; }
+
+        const merged = { ...nameMapping, ...mapping };
+        setNameMapping(merged);
+        localStorage.setItem('affiliate_name_mapping', JSON.stringify(merged));
+        setUploadMsg({ ok: true, text: `${count} affiliate name${count !== 1 ? 's' : ''} loaded.` });
+        setTimeout(() => setUploadMsg(null), 4000);
+      } catch {
+        setUploadMsg({ ok: false, text: 'Failed to parse file.' });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
   const { axisColor, axisStroke, gridStroke, tooltipStyle } = useChartColors();
 
   /* ── Close filter popover on outside click (parked — does not follow scroll) ── */
@@ -123,6 +186,7 @@ export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) 
 
   const tableData = Object.values(affMap).map(row => ({
     ...row,
+    affiliate_name: nameMapping[String(row.affiliate_id)] || row.affiliate_name || '',
     roi: row.cost > 0 ? row.profit / row.cost : 0,
     cpa: row.ftds > 0 ? row.cost / row.ftds : 0,
   }));
@@ -521,6 +585,35 @@ export const Affiliates: React.FC<AffiliatesProps> = ({ data, onPartnerClick }) 
                     {label}
                   </label>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <input ref={nameCsvRef} type="file" accept=".csv,.txt,.tsv" style={{ display: 'none' }} onChange={handleNameCsvUpload} />
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => nameCsvRef.current?.click()}
+              title="Upload a CSV/TSV with an ID column and a name column (e.g. affiliate_id, affiliate_name)"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                borderRadius: 8, border: `1px solid ${Object.keys(nameMapping).length > 0 ? 'var(--accent, #00d4ff)' : 'var(--border)'}`,
+                backgroundColor: 'var(--bg-card)', color: Object.keys(nameMapping).length > 0 ? 'var(--accent, #00d4ff)' : 'var(--text-primary)',
+                fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              }}
+            >
+              <Upload size={14} />
+              {Object.keys(nameMapping).length > 0 ? `Names (${Object.keys(nameMapping).length})` : 'Upload Names'}
+            </button>
+            {uploadMsg && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 500,
+                background: uploadMsg.ok ? 'var(--bg-card)' : 'var(--bg-card)',
+                border: `1px solid ${uploadMsg.ok ? 'var(--green, #10b981)' : 'var(--red, #ef4444)'}`,
+                borderRadius: 8, padding: '8px 12px', whiteSpace: 'nowrap',
+                fontSize: '0.78rem', color: uploadMsg.ok ? 'var(--green, #10b981)' : 'var(--red, #ef4444)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+              }}>
+                {uploadMsg.text}
               </div>
             )}
           </div>

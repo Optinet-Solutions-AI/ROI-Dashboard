@@ -21,7 +21,7 @@
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg-input, rgba(255,255,255,0.03));
+  background: var(--bg-input);
   min-width: 220px;
   flex: 1 1 220px;
 }
@@ -132,7 +132,7 @@
   color: var(--text-primary); font-size: 0.75rem; text-align: left; cursor: pointer;
   border-radius: 4px;
 }
-.filter-dropdown__option:hover { background: rgba(255,255,255,0.04); }
+.filter-dropdown__option:hover { background: var(--bg-hover); }
 .filter-dropdown__option--all  { border-bottom: 1px dashed var(--border); margin-bottom: 2px; }
 .filter-dropdown__empty,
 .filter-dropdown__truncated { padding: 6px 8px; font-size: 0.72rem; color: var(--text-secondary); }
