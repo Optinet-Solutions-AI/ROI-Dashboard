@@ -11,16 +11,6 @@ describe('normalizeColumnName', () => {
   });
 });
 
-describe('parseExcelFile row shape', () => {
-  // File-based tests live here once we have a tiny fixture; the
-  // critical behaviour to cover end-to-end is that Company_name
-  // does NOT collapse into affiliate_name, and Player_country
-  // does NOT collapse into country.
-  // For Task 3 we rely on Step 2's alias map + a direct unit
-  // test against deriveFtdMonth below.
-  it.todo('add fixture-based roundtrip once a tiny .xlsx is checked in');
-});
-
 import { deriveFtdMonth } from '../excelParser';
 
 describe('deriveFtdMonth', () => {
